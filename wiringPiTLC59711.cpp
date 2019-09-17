@@ -25,7 +25,6 @@
 
 wiringPiTLC59711::wiringPiTLC59711(void) {
 
-    command;
     wiringPiSPISetup(0, 500000);  // SPI chip select 0, speed 500000
     BCr = BCg = BCb = 0x7F;
 
