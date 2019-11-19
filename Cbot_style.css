@@ -1,0 +1,102 @@
+*{ /* Asterick applies this to everything */
+  box-sizing: border-box; /* it has to do with how sizes are calculated */
+} 
+
+html, body, div, h1, h2, h3, p, fieldset, form, label, legend { /* added paragraph tag to these */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  vertical-align: baseline;
+}
+/* reset browser styles above */
+
+html {
+    margin: 1%;
+}
+body {
+  margin: 1     %;
+  line-height: 1.2;
+  font-family: helvetica, sans-serif;
+  font-weight: 300;
+  font-size: 14px;
+}
+container { 
+  max-width: 768px; /* I reduced max-width to tablet size */
+  margin: 0 auto; /* You don't want to change the margin, you want to add padding. */
+  padding: 0 20px; /* This adds 20 pixels padding on the left and right */ 
+}
+header {
+  padding: 20px 0;
+}
+h1, h2, h3 {
+  font-weight: 300; 
+  text-align: center;
+  padding-bottom: 5px;
+}
+h1 {
+  font-size: 350%;
+}
+h2 {
+  font-size: 200%;
+}
+h3 { 
+  font-size: 140%;
+}
+rspns {
+  margin: 8%;
+  text-align: center;
+  font-size: 120%;
+}
+fieldset {
+  border: 1px solid black;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+section {
+  margin-bottom: 15px;
+}
+fieldset div, section div {
+  padding-bottom: 5px;
+}
+/* 
+In the html after the closing tag for <div class="form-flex"></div> 
+you could make a separate place to show alerts:
+<p id="alert">Alerts to show here</p>
+*/
+#alert { /* selects the paragraph tag with id="alert" */
+  color: red; /* makes the text red */
+}
+input[type=text] { /* selects all text input elements */
+  font-size: 100%; /* adjusts the font size */
+  padding-left: 5px; /* adds padding on the left inside the text input boxes */
+}
+#content { /* selects the element with id="content" */
+  width: 100%; /* sets width to 100% of the containing element */
+}
+form-flex, .flex2 {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+flex2 {
+  width: 180px;
+}
+button {
+  margin: 0;
+  border: 1px solid black;
+  background-color: #58e8f7;
+  font-size: 14px;
+  width: 140px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 5px;
+}
+end {
+  font-size: 25px;
+  padding-top: 6px;
+}
+output {
+  border-top: 1px solid black;
+  padding-top: 20px;
+}

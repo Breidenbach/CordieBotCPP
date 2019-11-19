@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <meta name="generator" content="BBEdit 12.6" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="Cbot_style.css">
+    <link href="https://fonts.googleapis.com/css?family=Audiowide" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Cairo" rel="stylesheet">
+    <script type="text/javascript" src=keys.js></script>
+</head>
+    
+<body>
+<div class="container">
+    <h1>CordieBot communication</h1>
+    <h3>Enter data for changing proclamation table.</h3>
+    <h3>Press the teal button when ready to act.</h3>
+    <h3>Press the yellow button to listen to the message.</h3>
+    <br>
+    <fieldset class="section">
+        <legend>Action</legend>
+        <div>
+            <input type="radio" id="action_choice" name="action" value="action_add" checked onclick="handleActionChoice(1);">
+            <label for="action_add">
+                Add a message.
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="action_choice" name="action" value="action_change" onclick="handleActionChoice(2);">
+            <label for="action_change">
+                Change a message.
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="action_choice" name="action" value="action_delete" onclick="handleActionChoice(3);">
+            <label for="action_delete">
+                Delete a message.
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="action_choice" name="action" value="action_retrieve_one" onclick="handleActionChoice(4);">
+            <label for="action_retrieve_one">
+                Retrieve one message.
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="action_choice" name="action" value="action_retrieve_date" onclick="handleActionChoice(5);">
+            <label for="action_retrieve_date">
+                Retrieve messages by month and day.
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="action_choice" name="action" value="action_retrieve_all" onclick="handleActionChoice(6);">
+            <label for="action_retrieve_all">
+                Retrieve all messages.
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="action_choice" name="action" value="action_resequence" onclick="handleActionChoice(7);">
+            <label for="action_resequence">
+                Resequence messages.
+            </label>
+        </div>
+    </fieldset>
+        <div class="form-flex">
+            <div class="input">
+                <label for="content" id="message_id_label">Message ID</label>
+                <input type="text" id="message_id" name="Message-ID" onfocusout="checkMessageID()">
+            </div>
+            <br>
+        </div>
+    <fieldset class="section" id="itemchoice_label">
+        <legend>When will this message be used?</legend>
+        <div>
+            <input type="radio" id="itemchoice" name="item_choice" value="One-day" checked onclick="handleItemChoice(1);">
+            <label for="One-day">
+                Just this one day.
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="itemchoice" name="item_choice" value="Annually" onclick="handleItemChoice(2);">
+            <label for="Annually">
+                This day every year.
+            </label>
+        </div>
+        <div>
+            <input type="radio" id="itemchoice" name="item_choice" value="Any-day" onclick="handleItemChoice(3);">
+            <label for="Any-day">
+                Any time.
+            </label>
+        </div>
+    </fieldset>
+    <div class="contact">
+        <div class="table">
+           <div class="table-cell">
+                <label for="year" id="year_label">Effective Date (yyyy)</label>
+                <input type="text" id="year" name="Active Date year" onfocusout="checkYear()">
+            </div>
+           <div class="table-cell">
+                <label for="month" id="month_label">(mm)</label>
+                <input type="text" id="month" name="Active Date month" onfocusout="checkDate()">
+            </div>
+           <div class="table-cell">
+                <label for="day" id="day_label">(dd)</label>
+                <input type="text" id="day" name="Active Date day" onfocusout="checkDate()">
+            </div>
+        </div>
+        <br>
+        <div class="form-flex">
+            <div class="input">
+                <label for="content" id="content_label">Message</label>
+                <input type="text" id="content" name="Content" onfocusout="checkMessageContent()">
+            </div>
+        </div>
+        <br>
+    </div>
+    <div class="contact">
+        <div class="form-flex">
+            <button id=button class="button">SEND</button>
+            <button id=button2 class="button" style="background-color: #FFFF00" >LISTEN</button>
+            <rspns id="result" ></rspns>
+        </div>
+    </div>
+    <br>
+
+    <div id=box></div>
+    <script src=https://cdn.pubnub.com/sdk/javascript/pubnub.4.0.11.min.js></script>
+    <script>
+        today = new Date();
+        dateSelection = 1;  // This value should be the same as the enabled item in the
+                            //fieldset radiobox definitions.
+            const ONE_DATE = 1;         //  dateSelection for a specific date
+            const THIS_DATE = 2;        //  dateSelection for this date any year
+            const ANY_TIME = 3;         //  dateSelection for any time
+        actionSelection = 1;  // This value should be the same as the enabled item in
+                              //the fieldset radiobox definitions.
+            const ADD_ENTRY = 1;            //  add an entry
+            const CHANGE_ENTRY = 2;         //  change a specific entry
+            const DELETE_ENTRY = 3;         //  delete a specific entry     
+            const RETRIEVE_ENTRY = 4;       //  retrieve an entry by id
+            const RETRIEVE_DATE = 5;        //  retrieve an entry by month & day
+            const RETRIEVE_ALL = 6;         //  retrieve all entries
+            const RESEQUENCE = 7;           //  resequence entries, giving them sequential
+                                            //      ID values.
+            const RETRIEVE_DATE_NEXT = 8;   //  retrieve next entry when retrieving by date
+            const RETRIEVE_ALL_NEXT = 9;    //  retrieve next entry when retrieving all
+                                        
+        handleActionChoice(ADD_ENTRY);
+        
+        function handleItemChoice(num) {
+            dateSelection = num;
+            console.log("in handleItemChoice with " + num);
+            switch(num){
+                case ONE_DATE:
+                    enableYear();
+                    year.focus();
+                    enableEntry("month");
+                    enableEntry("day");
+                    break;
+                case THIS_DATE:
+                    month.focus();
+                    disableYear();
+                    enableEntry("month");
+                    enableEntry("day");
+                    break;
+                case ANY_TIME:
+                    disableYear();
+                    disableMonthDay();
+                    content.focus();
+                    break;
+                default:
+            }
+        }
+        function handleActionChoice(num) {
+            actionSelection = num;
+            switch(num){
+                case ADD_ENTRY:  //  add message
+                    disableEntry("message_id");
+                    colorEnableFieldset("itemchoice_label");
+                    handleItemChoice(dateSelection)
+                    enableEntry("content");
+                    button.innerHTML = "ADD"
+                    break;
+                case CHANGE_ENTRY:  //  change message
+                    enableEntry("message_id");
+                    colorEnableFieldset("itemchoice_label");
+                    handleItemChoice(dateSelection)
+                    enableEntry("content");
+                    button.innerHTML = "CHANGE"
+                    break;
+                case DELETE_ENTRY:  //  delete message
+                    enableEntry("message_id");
+                    message_id.focus();
+                    colorDisableFieldset("itemchoice_label");
+                    disableEntry("content");
+                    disableEntry("year");
+                    disableEntry("month");
+                    disableEntry("day");
+                    button.innerHTML = "DELETE"
+                    break;
+                case RETRIEVE_ENTRY: //   retrieve one message
+                    enableEntry("message_id");
+                    message_id.focus();
+                    colorDisableFieldset("itemchoice_label");
+                    disableEntry("content");
+                    disableEntry("year");
+                    disableEntry("month");
+                    disableEntry("day");
+                    button.innerHTML = "RETRIEVE"
+                    break;
+                case RETRIEVE_DATE:  //  retrieve message by date
+                    disableEntry("message_id");
+                    colorDisableFieldset("itemchoice_label");
+                    disableEntry("content");
+                    disableEntry("year");
+                    enableEntry("month");
+                    enableEntry("day");
+                    button.innerHTML = "RETRIEVE by DATE"
+                    break;
+                case RETRIEVE_ALL:  //  retrieve all messages
+                    disableEntry("message_id");
+                    colorDisableFieldset("itemchoice_label");
+                    disableEntry("content");
+                    disableEntry("year");
+                    disableEntry("month");
+                    disableEntry("day");
+                    button.innerHTML = "RETRIEVE ALL"
+                    break;
+                case RESEQUENCE:  //  resequence messages
+                    disableEntry("message_id");
+                    colorDisableFieldset("itemchoice_label");
+                    disableEntry("content");
+                    disableEntry("year");
+                    disableEntry("month");
+                    disableEntry("day");
+                    button.innerHTML = "RESEQUENCE"
+                    break;
+                default:
+            }
+        }
+        function checkVariables(num) {
+            var input_ok = true;
+            switch(num){
+                case ADD_ENTRY:  //  add message
+                    checkItemChoice(dateSelection);
+                    if( ! checkMessageContent()) input_ok = false;
+                    break;
+                case CHANGE_ENTRY:  //  change message
+                    if ( ! checkMessageID()) input_ok = false;
+                    checkItemChoice(dateSelection);
+                    if ( ! checkMessageContent()) input_ok = false;
+                    break;
+                case DELETE_ENTRY:  //  delete message
+                case RETRIEVE_ENTRY: //   retrieve one message
+                    if ( ! checkMessageID()) input_ok = false;
+                    break;
+                case RETRIEVE_DATE:  //  retrieve message by date
+                    if ( ! checkDate()) input_ok = false;
+                    break;
+                case RETRIEVE_ALL:  //  retrieve all messages
+                case RESEQUENCE:  //  resequence messages
+                    break;
+                default:
+            }
+            return input_ok
+        }
+        function checkItemChoice(num) {
+            console.log('in checkItemChoice with num = ' + num)
+            var item_ok = true;
+            switch(num){
+                case ONE_DATE:
+                    if ( ! checkYear() || ! checkDate()) item_ok = false;
+                    break;
+                case THIS_DATE:
+                    if ( ! checkDate()) item_ok = false;
+                    break;
+                case ANY_TIME:
+                    break;
+                default:
+            }
+            return item_ok;
+        }
+        function disableYear() {
+            console.log('in disable year');
+            x = document.getElementById("year");
+            x.value = "";
+            xl = document.getElementById("year_label");
+		    xl.innerHTML = "Effective Date (yyyy)";
+            disableEntry("year");
+        }
+        function enableYear() {
+            console.log('in enable year');
+            x = document.getElementById("year");
+            x.value = "";
+            xl = document.getElementById("year_label");
+		    xl.innerHTML = "Effective Date (yyyy)";
+            enableEntry("year");
+        }
+        function disableMonthDay() {
+            disableEntry("month");
+            x = document.getElementById("month");
+            x.value = "";
+            xl = document.getElementById("month_label");
+		    xl.innerHTML = "(mm)";
+            disableEntry("day");
+            x = document.getElementById("day");
+            x.value = "";
+            xl = document.getElementById("day_label");
+		    xl.innerHTML = "(dd)";
+        }
+        function checkYear() {
+            console.log('in checkYear');
+            if (dateSelection != ONE_DATE) {
+		        return field_ok
+            }
+            x = document.getElementById("year");
+            xl = document.getElementById("year_label");
+            if (isNaN(year.value) || year.value < today.getFullYear()) {
+		        x.style.color='#ff0000';
+		        xl.style.color='#ff0000';
+		        xl.innerHTML = "Year must be numeric and this year or greater.";
+		        field_ok = false;                
+                year.focus();
+            } else {
+		        x.style.color='#000000';
+		        xl.style.color='#000000';
+		        xl.innerHTML = "Effective Date (yyyy)";
+		        field_ok = true;                
+      	    }
+		    return field_ok
+        }
+        function checkDate() {
+            if (checkMonth()){
+                return (checkDay())
+            } else {
+                return false;
+            }
+        }
+        function checkMonth() {
+            if (dateSelection == ANY_TIME) {
+		        return field_ok
+            }
+            var x = document.getElementById("month");
+            var xl = document.getElementById("month_label");
+            if (month.value > 0 && month.value < 13)  {
+		        x.style.color='#000000';
+		        xl.style.color='#000000';
+		        xl.innerHTML = "(mm)";
+		        field_ok = true;                
+            } else {
+		        x.style.color='#ff0000';
+		        xl.style.color='#ff0000';
+		        xl.innerHTML = "Month is invalid";
+		        field_ok = false;                
+                month.focus();
+            }
+		    return field_ok
+        }
+        function checkDay() {
+            if (dateSelection == ANY_TIME) {
+		        return field_ok
+		    }
+            var x = document.getElementById("day");
+            var xl = document.getElementById("day_label");
+            if (isValidDate(year.value, month.value, day.value))  {
+		        x.style.color='#000000';
+		        xl.style.color='#000000';
+		        xl.innerHTML = "(dd)";
+		        field_ok = true;                
+            } else {
+		        x.style.color='#ff0000';
+		        xl.style.color='#ff0000';
+		        xl.innerHTML = "Day is invalid";
+		        field_ok = false;                
+                day.focus();
+            }
+		    return field_ok
+        }
+        function isValidDate(y, m, d) {
+            // Assume not leap year by default (note zero index for Jan)
+            var daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+            // If evenly divisible by 4 and not evenly divisible by 100,
+            // or is evenly divisible by 400, then a leap year
+            if ((!(y % 4) && y % 100) || !(y % 400)) {
+                daysInMonth[1] = 29;
+            }
+          return !(/\D/.test(String(d))) && d > 0 && d <= daysInMonth[--m]
+        }
+        function checkMessageID() {
+            x = document.getElementById("message_id");
+            xl = document.getElementById("message_id_label");
+            if (isNaN(message_id.value) || (message_id.value.length < 1)) {
+		        x.style.color='#ff0000';
+		        xl.style.color='#ff0000';
+		        xl.innerHTML = "Message ID must be numeric.";                
+		        field_ok = false;                
+                x.focus();
+            } else {
+		        x.style.color='#000000';
+		        xl.style.color='#000000';
+		        xl.innerHTML = "Message ID";
+		        field_ok = true;                
+		    }
+		    return field_ok
+        }
+        function checkMessageContent() {
+            x = document.getElementById("content");
+            xl = document.getElementById("content_label");
+            msg = content.value;
+            if (msg.length < 1) {
+		        x.style.color='#ff0000';
+		        xl.style.color='#ff0000';
+		        xl.innerHTML = "Message must have content.";                
+		        field_ok = false;                
+                x.focus();
+            } else { 
+                if (msg.indexOf('\'') > -1) {
+		        x.style.color='#ff0000';
+		        xl.style.color='#ff0000';
+		        xl.innerHTML = "Single quotes not allowed in message.";                
+		        field_ok = false;                
+                x.focus();
+                } else {
+		            x.style.color='#000000';
+		            xl.style.color='#000000';
+		            xl.innerHTML = "Message";
+		            field_ok = true;  
+		        }
+		    }              
+		    return field_ok
+        }
+        function disableEntry(entry) {
+            //   console.log("in disableEntry with "+entry);
+            x = document.getElementById(entry);
+            x.style.color = '#D3D3D3';
+            x.disabled = true;
+            document.getElementById(entry+"_label").style.color = '#D3D3D3';
+        }
+        function enableEntry(entry) {
+            //   console.log("in enableEntry with "+entry);
+            x = document.getElementById(entry);
+            x.style.color = '#000000';
+            x.disabled = false;
+            document.getElementById(entry+"_label").style.color = '#000000';
+        }
+        function colorDisableFieldset(fs)  {
+            fsid = document.getElementById(fs);
+            fsid.disabled = true;
+            fsid.style.color = '#D3D3D3';
+        }
+
+        function colorEnableFieldset(fs)  {
+            fsid = document.getElementById(fs);
+            fsid.disabled = false;
+            fsid.style.color = '#000000';
+        }
+        
+        function setData(entry, content) {
+            fsid = document.getElementById(entry);
+            xl = document.getElementById(entry+"_label");
+            fsid.value = content;
+            fsid.style.color = '#000000';
+		    xl.style.color='#006400';
+        }
+        
+        function setDataZ(entry, content) {
+            if (content == 0) {
+                content = "";
+            }
+            setData(entry, content)
+        }
+    
+    (function(){
+        var pubnub = new PubNub({ publishKey : Publish,
+                  subscribeKey : Subscribe });
+        var button = document.querySelector("button");
+        var jsonData = {'action':'', 'ID':'', 'type':'', 'year':'', 'month':'', 'day':'', 'content':''}
+        function $(id) { return document.getElementById(id); }
+        var typebox = $(0);
+        day.value = String(today.getDate()).padStart(2, '0');
+        month.value = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+        year.value = today.getFullYear();
+        var channel = 'cordiebot';
+        var talkChannel = 'cordietalk'
+        pubnub.addListener({
+            message: function(obj) {
+                rspns = '' + obj.message;
+                console.log("obj.message = ", rspns);
+                console.log("rspns includes End  ", rspns.includes("End"))
+                split = rspns.indexOf('{');
+                console.log('split = ', split);
+                if (split > -1) {
+                    resps_action = rspns.substring(0, split) + '<br>';
+                    console.log('resps_action = ', resps_action);
+                    info = rspns.substring(split);
+                    console.log('info = ', info);
+                    qinfo = info.replace(/\'/g, '"');
+                    console.log(qinfo);
+                    switch (actionSelection) {
+                        case ADD_ENTRY:
+                            result.innerHTML = "Message added.";
+                            break;
+                        case CHANGE_ENTRY:
+                            result.innerHTML = "Message changed.";
+                            break;
+                        case DELETE_ENTRY:
+                            result.innerHTML = "Message deleted.";
+                            break;
+                        case RETRIEVE_ENTRY:
+                        case RETRIEVE_DATE:
+                        case RETRIEVE_ALL:
+                            result.innerHTML = "Message retrieved.";
+                            //  message not found from RETRIEVE processes
+                            //    is handled in "outer else"
+                            break;
+                        case RESEQUENCE:
+                            //  RESEQUENCE is handled in "outer else"
+                            break;
+                        default:
+                            result.innerHTML = "";
+                    }
+                    if (actionSelection == ADD_ENTRY ||
+                                 actionSelection == RETRIEVE_ENTRY ||
+                                 actionSelection == RETRIEVE_ALL ||
+                                 actionSelection == RETRIEVE_ALL_NEXT ||
+                                 actionSelection == RETRIEVE_DATE ||
+                                 actionSelection == RETRIEVE_DATE_NEXT  ) {
+                        pdata = JSON.parse(qinfo);
+                        setData("content",pdata['content']);
+                        setDataZ("year",pdata['year']);
+                        setDataZ("month",pdata['month']);
+                        setDataZ("day",pdata['day']);
+                        setData("message_id",pdata['ID']);
+                        if (actionSelection == RETRIEVE_ALL) {
+                            actionSelection = RETRIEVE_ALL_NEXT; 
+                            console.log("retrieve all -> retrieve all next");
+                            button.innerHTML = "RETRIEVE NEXT";
+                        } else {
+                        if (actionSelection == RETRIEVE_DATE) {
+                            actionSelection = RETRIEVE_DATE_NEXT; 
+                            console.log("retrieve by date -> retrieve by date next");
+                            button.innerHTML = "RETRIEVE NEXT";
+                        }}
+                    } else {
+                        console.log("inner else");
+                    }
+                } else {
+                    console.log("outer else")
+                    if (rspns.includes("not found")) {
+                        result.innerHTML = rspns.substring(18);
+                        content.value = "";
+                    } else {
+                    if (rspns.includes("resequence")) {
+                        result.innerHTML = rspns.substring(21);
+                        content.value = "";
+                    } else {
+                        result.innerHTML = "";
+                    }}
+                    if ((actionSelection == RETRIEVE_ALL_NEXT) && 
+                            rspns.includes("End")) {
+                        actionSelection = RETRIEVE_ALL;
+                        result.innerHTML = "End of messages."
+                        console.log("retrieve all next -> retrieve all");
+                        button.innerHTML = "RETRIEVE ALL";
+                    } else {
+                    if ((actionSelection == RETRIEVE_DATE_NEXT) && 
+                            rspns.includes("End")) {
+                        actionSelection = RETRIEVE_DATE;
+                        result.innerHTML = "End of messages."
+                        console.log("retrieve by date next -> retrieve by date");
+                        button.innerHTML = "RETRIEVE by DATE";
+                    }}
+                    //box.innerHTML = (''+obj.message).replace( /[<>]/g, '' ) + '<br>' + box.innerHTML;
+                }
+              }});
+            pubnub.subscribe({channels:[channel,talkChannel]});
+            button.addEventListener('click', function() {
+                //   console.log(checkVariables(actionSelection))
+                if (checkVariables(actionSelection)) {
+                    jsonData.action = actionSelection;
+                    jsonData.ID = message_id.value;
+                    jsonData.type = dateSelection;
+                    jsonData.year = parseInt(year.value);
+                    jsonData.month = parseInt(month.value);
+                    jsonData.day = parseInt(day.value);
+                    jsonData.content = content.value;
+                    pubnub.publish({channel : channel,message : jsonData,x });
+            }});
+            button2.addEventListener('click', function() {
+                //   console.log(checkVariables(actionSelection))
+                jsonData.content = content.value;
+                pubnub.publish({channel : talkChannel, message : jsonData,x });
+            
+        });
+    })();
+    </script>
+</div>
+</body>
+</html>
