@@ -104,8 +104,23 @@ void MsgList::AddMessage(string const &ID, int const &type, int const &year, int
   msg.set_month(month);
   msg.set_day(day);
   msg.set_content(content);
-  vector<Message>::const_iterator vit_;
+//  vector<Message>::const_iterator vit_;
   messages_.push_back(msg);
+}
+
+bool MsgList::erase(std::string mid){
+    for (vector<Message>::const_iterator vit_ = messages_.begin();
+                         vit_ != messages_.end(); ++vit_) {
+        if (mid == (*vit_).ID()){
+            messages_.erase(vit_);
+            #ifdef DEBUG
+//                std::cout << "erasing  id: " << (*vit_).ID() << "  index:  " << vit_ << std::endl;
+                std::cout << "erasing  id: " << mid << std::endl;
+            #endif
+            return true;
+        }
+    }
+    return false;
 }
 
 void MsgList::JsonSave(const char* filename) {
@@ -197,16 +212,17 @@ const string& MessageBank::content() const {
 
 void MessageBank::addEntry(string const &ID, int const &type, int const &year, int const &month,
                                     int const &day, string const &content){
-//  Message msg = Message();
-//  msg.set_ID(ID);
-//  msg.set_type(type);
-//  msg.set_year(year);
-//  msg.set_month(month);
-//  msg.set_day(day);
-//  msg.set_content(content);
-//  vector<Message>::const_iterator vit_;
-  proclamations_.AddMessage(ID, type, year, month, day, content);
+    proclamations_.AddMessage(ID, type, year, month, day, content);
+    proclamations_.JsonSave(fname_);
 } 
+
+bool MessageBank::erase(std::string mid){
+    if (proclamations_.erase(mid)){
+        proclamations_.JsonSave(fname_);
+        return true;
+    }
+    return false;
+}
 
 void MessageBank::save() {
     #ifdef DEBUG
@@ -215,18 +231,7 @@ void MessageBank::save() {
      proclamations_.JsonSave(fname_);
 }
 
-/*Message MessageBank::RetrieveOne (string mid) {
-    for (vit_ = proclamations_.messages().begin();
-                         it != proclamations_.messages().end(); ++vit_) {
-        if (mid == (*vit_).ID()){
-            return *vit_;
-        }
-    }
-//    Message empty_message;
-//    return empty_message;
-}
-*/
-string MessageBank::getNextID()  {
+std::string MessageBank::getNextID()  {
     int tempID = 0;
     for (vit_ = proclamations_.messages().begin();
                          vit_ != proclamations_.messages().end(); ++vit_) {

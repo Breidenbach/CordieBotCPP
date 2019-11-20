@@ -16,7 +16,7 @@ private:
     int year_ = 0;
     int month_ = 0;
     int day_ = 0;
-    string content_ = " ";
+    std::string content_ = " ";
 public:
     Message();
     void set_ID(string const &ID);
@@ -47,6 +47,7 @@ public:
 
     void AddMessage(string const &ID, int const &type, int const &year, int const &month,
                                     int const &day, string const &content);
+    bool erase(string mid);
     const vector<Message>::iterator& begin();
     const vector<Message>::iterator& end();
     int count();
@@ -67,8 +68,8 @@ public:
     const string& content() const;
     void addEntry(string const &ID, int const &type, int const &year, int const &month,
                                     int const &day, string const &content);
-    string getNextID() ;
-//    Message RetrieveOne (string mid);
+    bool erase(string mid);
+    std::string getNextID() ;
     bool CheckID (string mid);
     void save();
     int count();
