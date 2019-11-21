@@ -532,6 +532,9 @@
                         setDataZ("year",pdata['year']);
                         setDataZ("month",pdata['month']);
                         setDataZ("day",pdata['day']);
+                        rbset = pdata['type'] - 1;
+                        rbutton = document.getElementsByName("item_choice");
+                        rbutton[rbset].checked = true;
                         setData("message_id",pdata['ID']);
                         if (actionSelection == RETRIEVE_ALL) {
                             actionSelection = RETRIEVE_ALL_NEXT; 
