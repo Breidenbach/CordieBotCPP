@@ -284,7 +284,6 @@
         function disableYear() {
             console.log('in disable year');
             x = document.getElementById("year");
-            x.value = "";
             xl = document.getElementById("year_label");
 		    xl.innerHTML = "Effective Date (yyyy)";
             disableEntry("year");
@@ -292,7 +291,6 @@
         function enableYear() {
             console.log('in enable year');
             x = document.getElementById("year");
-            x.value = "";
             xl = document.getElementById("year_label");
 		    xl.innerHTML = "Effective Date (yyyy)";
             enableEntry("year");
@@ -300,12 +298,10 @@
         function disableMonthDay() {
             disableEntry("month");
             x = document.getElementById("month");
-            x.value = "";
             xl = document.getElementById("month_label");
 		    xl.innerHTML = "(mm)";
             disableEntry("day");
             x = document.getElementById("day");
-            x.value = "";
             xl = document.getElementById("day_label");
 		    xl.innerHTML = "(dd)";
         }
@@ -532,9 +528,9 @@
                         setDataZ("year",pdata['year']);
                         setDataZ("month",pdata['month']);
                         setDataZ("day",pdata['day']);
-                        rbset = pdata['type'] - 1;
+                        dateSelection = pdata['type'];
                         rbutton = document.getElementsByName("item_choice");
-                        rbutton[rbset].checked = true;
+                        rbutton[dateSelection - 1].checked = true;
                         setData("message_id",pdata['ID']);
                         if (actionSelection == RETRIEVE_ALL) {
                             actionSelection = RETRIEVE_ALL_NEXT; 
@@ -555,8 +551,8 @@
                         result.innerHTML = rspns.substring(18);
                         content.value = "";
                     } else {
-                    if (rspns.includes("resequence")) {
-                        result.innerHTML = rspns.substring(21);
+                    if (rspns.includes("Resequence")) {
+                        result.innerHTML = rspns;
                         content.value = "";
                     } else {
                         result.innerHTML = "";

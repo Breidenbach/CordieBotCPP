@@ -9,7 +9,7 @@
 #include "messages.h"
 #include <fstream>
 
-#define debug
+#define DEBUG
 
 /*
    pubnubprocess.cpp - created from subscribe_publish_callback_sample.cpp
@@ -65,16 +65,13 @@ int main()
     
     MessageBank mbank("proclamations.txt");
     string message_reply;
-    std::cout << "input message count:  " << mbank.count() << std::endl;
+    #ifdef DEBUG
+        std::cout << "input message count:  " << mbank.count() << std::endl;
+    #endif
     try {
       for (;;) {
         enum pubnub_res res;
             char const *chan = "cordiebot";
-/*            pubnub::context pb("pub-c-1b01f37e-e28e-4e77-8f5c-d004f80840ae",
-                    "sub-c-a301580a-54a0-11e9-94f2-3600c194fb1c");
-            pubnub::context pb_2("pub-c-1b01f37e-e28e-4e77-8f5c-d004f80840ae", 
-                    "sub-c-a301580a-54a0-11e9-94f2-3600c194fb1c");
-                    */
             pubnub::context pb(pubkey, subkey);
             pubnub::context pb_2(pubkey, subkey);
             JSONCPP_STRING json_err;
@@ -90,22 +87,27 @@ int main()
             std::string sent_message;
             std::string msg;
 
-        std::cout << "--------------------------" << std::endl <<
-            "Subscribing..." << std::endl <<
-            "--------------------------";
-	
+        #ifdef DEBUG
+            std::cout << "--------------------------" << std::endl <<
+                "Subscribing..." << std::endl <<
+                "--------------------------";
+	    #endif
         /* First subscribe, to get the time token */
         res = pb.subscribe(chan).await();
         if (PNR_STARTED == res) {
-            std::cout << "await() returned unexpected: PNR_STARTED" << std::endl;
+            #ifdef DEBUG
+                std::cout << "await() returned unexpected: PNR_STARTED" << std::endl;
+            #endif
             return -1;
         }
-        if (PNR_OK == res) {
-            std::cout << "Subscribed!" << std::endl;
-        }
-        else {
-            std::cout << "Subscribing failed with code: " << (int)res << std::endl;;
-        }
+        #ifdef DEBUG
+            if (PNR_OK == res) {
+                std::cout << "Subscribed!" << std::endl;
+            }
+            else {
+                std::cout << "Subscribing failed with code: " << (int)res << std::endl;;
+            }
+        #endif
 
         /* The "real" subscribe, with the just acquired time token */
         pubnub::futres futres = pb.subscribe(chan);
@@ -114,10 +116,12 @@ int main()
          * anything yet! */
         futres.start_await();
     
-        std::cout << "--------------------------" << std::endl <<
-            "Publishing..." << std::endl <<
-            "--------------------------";
-
+        #ifdef DEBUG
+            std::cout << "--------------------------" << std::endl <<
+                "Publishing..." << std::endl <<
+                "--------------------------";
+        #endif
+        
         /* Since the subscribe is ongoing in the `pb` context, we
            can't publish on it, so we use a different context to
            publish
@@ -125,35 +129,51 @@ int main()
         if (action > 0) {
             pubnub::futres fr_2 = pb_2.publish(chan, message_reply);
         
-            std::cout << "Await publish" << std::endl;
+            #ifdef DEBUG
+                std::cout << "Await publish" << std::endl;
+            #endif
             res = fr_2.await();
             if (res == PNR_STARTED) {
-                std::cout << "await() returned unexpected: PNR_STARTED" << std::endl;
+                #ifdef DEBUG
+                    std::cout << "await() returned unexpected: PNR_STARTED" << std::endl;
+                #endif
                 return -1;
             }
-            if (PNR_OK == res) {
-                std::cout << "Published! Response from Pubnub: " << pb_2.last_publish_result() << std::endl;
-            }
-            else if (PNR_PUBLISH_FAILED == res) {
-                std::cout << "Published failed on Pubnub, description: " << pb_2.last_publish_result() << std::endl;
-            }
-            else {
-                std::cout << "Publishing failed with code: " << (int)res << std::endl;
-            }
+            #ifdef DEBUG
+                if (PNR_OK == res) {
+                    std::cout << "Published! Response from Pubnub: " 
+                                        << pb_2.last_publish_result() << std::endl;
+                }
+                else if (PNR_PUBLISH_FAILED == res) {
+                    std::cout << "Published failed on Pubnub, description: " 
+                                        << pb_2.last_publish_result() << std::endl;
+                }
+                else {
+                    std::cout << "Publishing failed with code: " << (int)res << std::endl;
+                }
+            #endif
         }
         /* Now we await the subscribe on `pbp` */
-        std::cout << "Await subscribe" << std::endl;;
+        #ifdef DEBUG
+            std::cout << "Await subscribe" << std::endl;
+        #endif
         res = futres.end_await();
         action = 0;
         if (PNR_OK == res) {
-            std::cout << "Subscribed! Got messages:";
+            #ifdef DEBUG
+                std::cout << "Subscribed! Got messages:";
+            #endif
             do {
                 msg = pb.get();
                 string next_entry;
                 std::cout << msg << std::endl;
                 if (!msg.empty() && (msg != message_reply)){
-                    std::cout << "bool = " << !msg.empty() << (msg != message_reply) << std::endl;
-                    std::cout << "Just checked if not equal to sent message again" << std::endl;
+                    #ifdef DEBUG
+                        std::cout << "bool = " << !msg.empty() <<
+                                             (msg != message_reply) << std::endl;
+                        std::cout << "Just checked if not equal to sent message again" 
+                                                << std::endl;
+                    #endif
                     std::string reply_string;
                     Json::Value root;
                     Json::Reader reader;
@@ -175,8 +195,19 @@ int main()
                             root["ID"] = next_entry;
                             reply_string = adjustApostropies(writer.write(root));
                             message_reply = "\"Action = add.  New ID is " +
-                                                         next_entry  + ". " + reply_string +"\"";
+                                        next_entry  + ". " + reply_string +"\"";
                             std::cout << message_reply << std::endl;
+                            break;
+                        case CHANGE_ENTRY:
+                            if (mbank.erase(ID)) {
+                                mbank.addEntry(ID, type, year, month, day, content);
+                                reply_string = adjustApostropies(writer.write(root));
+                                message_reply = "\"Action = change. " + reply_string +"\"";
+                                std::cout << message_reply << std::endl;
+                            } else {
+                                message_reply = "\"Action = change.  Message " +
+                                                             ID + " not found.\"";
+                            }  // if (mbank.erase(ID))
                             break;
                         case DELETE_ENTRY:
                             if (mbank.erase(ID)) {
@@ -187,7 +218,6 @@ int main()
                                 message_reply = "\"Action = delete.  Message " +
                                                              ID + " not found.\"";
                             }  // if (mbank.erase(ID))
-                            
                             break;
                         case RETRIEVE_ENTRY:
                             std::cout << "action:  retrieve entry ID matches = "
@@ -197,6 +227,7 @@ int main()
                                 reply_root["year"] = mbank.year();
                                 reply_root["month"] = mbank.month();
                                 reply_root["day"] = mbank.day();
+                                reply_root["type"] = mbank.type();
                                 reply_root["content"] = mbank.content();
                                 reply_string = writer.write(reply_root);
                                 message_reply = adjustApostropies(reply_string);
@@ -208,6 +239,83 @@ int main()
                                                              ID + " not found.\"";
                             }  // if (mbank.CheckID(ID))
                             break;
+                        case RETRIEVE_DATE:
+                            if (mbank.getByDate(month, day)){
+                                reply_root["ID"] = mbank.ID();
+                                reply_root["year"] = mbank.year();
+                                reply_root["month"] = mbank.month();
+                                reply_root["day"] = mbank.day();
+                                reply_root["type"] = mbank.type();
+                                reply_root["content"] = mbank.content();
+                                reply_string = writer.write(reply_root);
+                                message_reply = adjustApostropies(reply_string);
+                                message_reply = "\"Action = get by date.  " +
+                                                         message_reply + "\"";
+                                std::cout << message_reply << std::endl;
+                            } else {
+                                message_reply = "\"Action = get by date.  Entries for " +
+                                         to_string(month)  + "/" + to_string(day) +
+                                          " not found.\"";
+                            }  // if (mbank.getByDate(month, day))
+                            break;
+                        case RETRIEVE_DATE_NEXT:
+                            if (mbank.getByDateNext(month, day)){
+                                reply_root["ID"] = mbank.ID();
+                                reply_root["year"] = mbank.year();
+                                reply_root["month"] = mbank.month();
+                                reply_root["day"] = mbank.day();
+                                reply_root["type"] = mbank.type();
+                                reply_root["content"] = mbank.content();
+                                reply_string = writer.write(reply_root);
+                                message_reply = adjustApostropies(reply_string);
+                                message_reply = "\"Action = get by date next.  " +
+                                                         message_reply + "\"";
+                                std::cout << message_reply << std::endl;
+                            } else {
+                                message_reply =
+                                    "\"End of messages for " +
+                                         to_string(month)  + "/" + to_string(day) + "\"";
+                            }
+                            break;
+                        case RETRIEVE_ALL:
+                            if (mbank.getAllStart()){
+                                reply_root["ID"] = mbank.ID();
+                                reply_root["year"] = mbank.year();
+                                reply_root["month"] = mbank.month();
+                                reply_root["day"] = mbank.day();
+                                reply_root["type"] = mbank.type();
+                                reply_root["content"] = mbank.content();
+                                reply_string = writer.write(reply_root);
+                                message_reply = adjustApostropies(reply_string);
+                                message_reply = "\"Action = get all.  " +
+                                                         message_reply + "\"";
+                                std::cout << message_reply << std::endl;
+                            } else {
+                                message_reply = "\"Action = get all.  No entries found.\"";
+                            }  // if (mbank.getAllStart())
+                            break;
+                        case RETRIEVE_ALL_NEXT:
+                            if (mbank.getAllNext()){
+                                reply_root["ID"] = mbank.ID();
+                                reply_root["year"] = mbank.year();
+                                reply_root["month"] = mbank.month();
+                                reply_root["day"] = mbank.day();
+                                reply_root["type"] = mbank.type();
+                                reply_root["content"] = mbank.content();
+                                reply_string = writer.write(reply_root);
+                                message_reply = adjustApostropies(reply_string);
+                                message_reply = "\"Action = get all.  " +
+                                                         message_reply + "\"";
+                                std::cout << message_reply << std::endl;
+                            } else {
+                                message_reply = "\"End of messages.\"";
+                            }  // if (mbank.getAllNext())
+                            break;
+                        case RESEQUENCE:
+                            mbank.resequence();
+                            message_reply = "\"Resequenced " + 
+                                       to_string(mbank.count()) + " messages.\"";
+                            break;
                         default:
                                 message_reply = "\"Action unknown " + to_string(action)
                                                      + "\"";
@@ -216,9 +324,11 @@ int main()
                 }  //  if (!msg.empty() && (msg != sent_message))
             } while (!msg.empty());
         }
-        else {
-            std::cout << "Subscribing failed with code: " << (int)res << std::endl;
-        }
+        #ifdef DEBUG
+            else {
+                std::cout << "Subscribing failed with code: " << (int)res << std::endl;
+            }
+        #endif
       }
     }
     catch (std::exception &exc) {
@@ -226,7 +336,9 @@ int main()
     }
 	
     /* We're done */
-    std::cout << "Pubnub subscribe-publish callback demo over." << std::endl;
-
+    #ifdef DEBUG
+        std::cout << "Pubnub subscribe-publish callback demo over." << std::endl;
+    #endif
+    
     return 0;
 }

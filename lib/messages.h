@@ -6,7 +6,6 @@
 
 #include <jsoncpp/json/json.h>
 
-
 using namespace std;
 
 class Message {
@@ -43,14 +42,16 @@ public:
     MsgList();
     const vector<Message>& messages() const;
     void JsonSave(const char* filename);
+    void JsonReseq(const char* filename);
     void JsonLoad(const char* filename);
-
+    void clear();
     void AddMessage(string const &ID, int const &type, int const &year, int const &month,
                                     int const &day, string const &content);
     bool erase(string mid);
     const vector<Message>::iterator& begin();
     const vector<Message>::iterator& end();
     int count();
+    bool empty();
 };
 
 class MessageBank {
@@ -71,6 +72,12 @@ public:
     bool erase(string mid);
     std::string getNextID() ;
     bool CheckID (string mid);
+    bool getByDate (int month, int day);
+    bool getByDateNext (int month, int day);
+    bool getAllStart();
+    bool getAllNext();
     void save();
     int count();
+    void resequence();
+    void reload();
 };

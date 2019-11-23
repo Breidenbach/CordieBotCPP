@@ -104,7 +104,6 @@ void MsgList::AddMessage(string const &ID, int const &type, int const &year, int
   msg.set_month(month);
   msg.set_day(day);
   msg.set_content(content);
-//  vector<Message>::const_iterator vit_;
   messages_.push_back(msg);
 }
 
@@ -114,7 +113,6 @@ bool MsgList::erase(std::string mid){
         if (mid == (*vit_).ID()){
             messages_.erase(vit_);
             #ifdef DEBUG
-//                std::cout << "erasing  id: " << (*vit_).ID() << "  index:  " << vit_ << std::endl;
                 std::cout << "erasing  id: " << mid << std::endl;
             #endif
             return true;
@@ -130,6 +128,7 @@ void MsgList::JsonSave(const char* filename) {
     ofstream out(filename, ofstream::out);
     Json::Value book_json(Json::objectValue), messages_json(Json::arrayValue);
     for (vector<Message>::iterator it = messages_.begin(); it != messages_.end(); ++it) {
+        ++count_;
         messages_json.append((*it).ToJson());
     }
     book_json["proclamations"] = messages_json;
@@ -141,13 +140,46 @@ void MsgList::JsonSave(const char* filename) {
     #ifdef DEBUG
         std::cout << "JsonSave before resetting count, count: " << count_ << std::endl;
     #endif
-    count_ = 0;
+}
+
+void MsgList::JsonReseq(const char* filename) {
+    #ifdef DEBUG
+        std::cout << "MsgList::JsonSave filename: " << filename << std::endl;
+    #endif
+    int new_id_ = 0;
+    ofstream out(filename, ofstream::out);
+    Json::Value book_json(Json::objectValue), messages_json(Json::arrayValue);
+    for (vector<Message>::iterator it = messages_.begin(); it != messages_.end(); ++it) {
+        ++new_id_;
+        Message temp_ = Message();
+        temp_.set_ID(to_string(new_id_));
+        temp_.set_type((*it).type());
+        temp_.set_year((*it).year());
+        temp_.set_month((*it).month());
+        temp_.set_day((*it).day());
+        temp_.set_content((*it).content());
+        messages_json.append(temp_.ToJson());
+    }
+    book_json["proclamations"] = messages_json;
+    #ifdef DEBUG
+        std::cout << book_json << std::endl;
+    #endif
+    out << book_json;
+    out.close();
+    #ifdef DEBUG
+        std::cout << "JsonSave before resetting count, count: " << count_ << std::endl;
+    #endif
+}
+
+void MsgList::clear(){
+    messages_.clear();
 }
 
 void MsgList::JsonLoad(const char* filename) {
   ifstream in(filename);
   Json::Value book_json;
   in >> book_json;
+  count_ = 0;
 #ifdef DEBUG
   std::cout << book_json << std::endl;
 #endif
@@ -170,6 +202,13 @@ int MsgList::count(){
       std::cout << "retrieving count: " << count_ << std::endl;
     #endif
     return count_;
+}
+
+bool MsgList::empty(){
+    #ifdef DEBUG
+        std::cout << "empty test:  " << messages_.empty() << endl;
+    #endif
+    return messages_.empty();
 }
 
 /***********************************************************************************
@@ -250,9 +289,65 @@ bool MessageBank::CheckID (string mid) {
     return false;
 }
 
+bool MessageBank::getByDate (int month, int day){
+    for (vit_ = proclamations_.messages().begin();
+                         vit_ != proclamations_.messages().end(); ++vit_) {
+        if ((month == (*vit_).month()) && (day == (*vit_).day())){
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MessageBank::getByDateNext (int month, int day){
+    for (++vit_ ; vit_ != proclamations_.messages().end(); ++vit_) {
+        if ((month == (*vit_).month()) && (day == (*vit_).day())){
+            return true;
+        }
+    }
+    return false;
+}
+
+bool MessageBank::getAllStart(){
+    if (!proclamations_.empty()) {
+        vit_ = proclamations_.messages().begin();
+        return true;
+    }
+    return false;
+}
+
+bool MessageBank::getAllNext(){
+    for (++vit_ ; vit_ != proclamations_.messages().end(); ++vit_) {
+        return true;
+    }
+    #ifdef DEBUG
+        std::cout << "getAllNext, returning FALSE "  << std::endl;
+    #endif
+    return false;
+}
+
 int MessageBank::count() {
     #ifdef DEBUG
       std::cout <<  "MessageBank::count: " << proclamations_.count() << std::endl;
     #endif
     return proclamations_.count();
 }
+
+/**  resequence()
+ * 
+ *  save original vector with key changes
+ *  clean out vector
+ *  reload vector
+ *
+ */
+void MessageBank::resequence() {
+    proclamations_.JsonReseq(fname_);
+    proclamations_.clear();
+    proclamations_.JsonLoad(fname_);
+}
+
+void MessageBank::reload() {
+    proclamations_.clear();
+    proclamations_.JsonLoad(fname_);
+}
+
