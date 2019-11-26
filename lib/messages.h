@@ -10,12 +10,12 @@ using namespace std;
 
 class Message {
 private:
-    string ID_ = "0";
-    int type_ = 0;
-    int year_ = 0;
-    int month_ = 0;
-    int day_ = 0;
-    std::string content_ = " ";
+    string ID_;
+    int type_;
+    int year_;
+    int month_;
+    int day_;
+    std::string content_;
 public:
     Message();
     void set_ID(string const &ID);

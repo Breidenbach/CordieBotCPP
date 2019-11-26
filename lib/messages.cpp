@@ -12,6 +12,12 @@
  ***********************************************************************************/
 
 Message::Message() {
+    ID_ = "0";
+    type_ = 0;
+    year_ = 0;
+    month_ = 0;
+    day_ = 0;
+    content_ = "";
 }
 
 void Message::set_ID(string const &ID) {

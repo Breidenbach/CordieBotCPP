@@ -31,7 +31,14 @@ SOURCEFILES = ../c-core/core/pubnub_pubsubapi.c \
               ../c-core/core/pubnub_free_with_timeout_std.c \
               ../c-core/cpp/pubnub_subloop.cpp \
               ../c-core/posix/msstopwatch_monotonic_clock.c \
-              ../c-core/core/pubnub_url_encode.c
+              ../c-core/core/pubnub_url_encode.c 
+
+# source file for message procesing           
+MESSAGESOURCE = ../lib/messages.cpp
+
+# source files for CordieBot main app              
+CBOTSOURCEFILES = ../lib/wiringPiMCP3002.cpp \
+                  ../lib/wiringPiTLC59711.cpp
 
 
 ifndef ONLY_PUBSUB_API
@@ -67,7 +74,9 @@ DO_CORDIEBOT = 1
 endif
 
 ifeq ($(DO_CORDIEBOT), 3)            
-SOURCEFILES +=  pubnublisten_subloop.cpp \
+SOURCEFILES +=  pubnublisten.cpp \
+                pubnubprocess.cpp \
+                cb_sync.cpp \
                 subscribe_publish_callback.cpp
 endif
 
@@ -126,6 +135,7 @@ CFLAGS =-g -I .. -I . \
                  -I ../c-core/cpp \
                  -I ../c-core/core \
                  -I ../c-core/posix \
+                 -I ../lib \
                  -Wall \
                  -D PUBNUB_THREADSAFE \
                  -D PUBNUB_LOG_LEVEL=PUBNUB_LOG_LEVEL_WARNING \
@@ -138,31 +148,35 @@ CFLAGS =-g -I .. -I . \
 # -g enables debugging, remove to get a smaller executable
 
 
-all: cpp11 cpp98
+#all: cpp11 cpp98
+all: cpp11 
 
 ifeq ($(DO_CORDIEBOT), 1)
 
-cpp98:      cordiebot_pubnubpipe
-       
-cpp11:      cordiebot_listen
+#cpp98:      cordiebot_pubnubpipe \
+
+#cpp98:      subscribe_publish_callback_sample
+            
+cpp11:      cordiebot_process \
+            cordiebot
 else
-cpp98: pubnub_sync_sample \
-       pubnub_callback_sample \
-       cancel_subscribe_sync_sample \
-       subscribe_publish_callback_sample \
-       futres_nesting_sync \
-       futres_nesting_callback \
-       pubnub_sync_subloop_sample \
-       pubnub_callback_subloop_sample
+#cpp98: pubnub_sync_sample \
+#       pubnub_callback_sample \
+#       cancel_subscribe_sync_sample \
+#       subscribe_publish_callback_sample \
+#       futres_nesting_sync \
+#       futres_nesting_callback \
+#       pubnub_sync_subloop_sample \
+#       pubnub_callback_subloop_sample
        
-cpp11: pubnub_callback_cpp11_sample \
-       futres_nesting_callback_cpp11 \
-       fntest_runner \
-       pubnub_callback_cpp11_subloop_sample 
+#cpp11: pubnub_callback_cpp11_sample \
+#       futres_nesting_callback_cpp11 \
+#       fntest_runner \
+#       pubnub_callback_cpp11_subloop_sample 
 
 endif
 
-
+ifeq ("x","y")
 pubnub_sync_sample: ../c-core/cpp/samples/pubnub_sample.cpp \
                 $(SOURCEFILES) ../c-core/core/pubnub_ntf_sync.c \
                                ../c-core/cpp/pubnub_futres_sync.cpp
@@ -170,6 +184,8 @@ pubnub_sync_sample: ../c-core/cpp/samples/pubnub_sample.cpp \
 	                               ../c-core/core/pubnub_ntf_sync.c \
 	                               ../c-core/cpp/pubnub_futres_sync.cpp \
 	                               $(SOURCEFILES) $(LDLIBS)
+	                               
+
 
 cancel_subscribe_sync_sample: ../c-core/cpp/samples/cancel_subscribe_sync_sample.cpp \
                 $(SOURCEFILES) ../c-core/core/pubnub_ntf_sync.c \
@@ -194,7 +210,7 @@ pubnub_sync_subloop_sample: ../c-core/cpp/samples/pubnub_subloop_sample.cpp \
 	                               ../c-core/core/pubnub_ntf_sync.c \
 	                               ../c-core/cpp/pubnub_futres_sync.cpp \
 	                               $(SOURCEFILES) $(LDLIBS)
-#endif
+endif
 ##
 # The socket poller module to use. You should use the `poll` poller, it
 # doesn't have the weird restrictions of `select` poller. OTOH,
@@ -248,32 +264,46 @@ endif
 
 CFLAGS_CALLBACK = -D PUBNUB_USE_IPV6=$(USE_IPV6) -D PUBNUB_SET_DNS_SERVERS=$(USE_DNS_SERVERS)
 
-ifeq ($(DO_CORDIEBOT), 1)
-cordiebot_pubnubpipe: subscribe_publish_callback.cpp \
+#ifeq ($(DO_CORDIEBOT), 1)
+ifeq ("x","y")
+subscribe_publish_callback_sample: subscribe_publish_callback_sample.cpp \
             $(SOURCEFILES) $(CALLBACK_INTF_SOURCEFILES) \
             ../c-core/cpp/pubnub_futres_posix.cpp
 	$(CXX) -o $@ -ljsoncpp -D PUBNUB_CALLBACK_API $(CFLAGS) $(CFLAGS_CALLBACK) \
-	             -x c++ subscribe_publish_callback.cpp \
+	             -x c++ subscribe_publish_callback_sample.cpp \
 	                    $(CALLBACK_INTF_SOURCEFILES) \
 	                    ../c-core/cpp/pubnub_futres_posix.cpp \
 	                    $(SOURCEFILES) $(LDLIBS)
 endif
 
 
+
 ifeq ($(DO_CORDIEBOT), 1)
-cordiebot_listen: pubnublisten.cpp \
-                                      $(SOURCEFILES) $(CALLBACK_INTF_SOURCEFILES) \
+	                        
+#cordiebot: cordiebot.cpp  $(CBOTSOURCEFILES) $(MESSAGESOURCE)
+cordiebot: cordiebot.cpp  $(MESSAGESOURCE)
+	$(CXX) -o $@ -std=c++11 -ljsoncpp \
+	                   $(CFLAGS)  \
+	                -x c++  cordiebot.cpp \
+	                        $(MESSAGESOURCE)
+#	                        $(CBOTSOURCEFILES) $(MESSAGESOURCE)
+	                        
+cordiebot_process: pubnubprocess.cpp \
+                                      $(SOURCEFILES) $(MESSAGESOURCE) \
+                                       $(CALLBACK_INTF_SOURCEFILES) \
                                       ../c-core/cpp/pubnub_futres_cpp11.cpp
 	$(CXX) -o $@ -std=c++11 -ljsoncpp \
 	                   -D PUBNUB_CALLBACK_API $(CFLAGS) $(CFLAGS_CALLBACK) \
-	                -x c++  pubnublisten.cpp \
+	                -x c++  pubnubprocess.cpp \
 	                        $(CALLBACK_INTF_SOURCEFILES) \
 	                        ../c-core/cpp/pubnub_futres_cpp11.cpp \
-	                        $(SOURCEFILES) $(LDLIBS)
+	                        $(SOURCEFILES) $(LDLIBS) $(MESSAGESOURCE)
 endif
 
 
+
 clean:
-	rm cordiebot_listen \
+	rm cordibot \
+	    cordibot_process \
 	   ../c-core/fntest_runner \
 	   ../c-core/*.dSYM
