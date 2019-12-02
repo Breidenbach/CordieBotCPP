@@ -162,6 +162,7 @@ ifeq ($(DO_CORDIEBOT), 1)
 
 
 cpp11:      cordiebot_listen \
+            cordiebot_speak \
             cordiebot
 
 endif
@@ -228,16 +229,27 @@ cordiebot: cordiebot.cpp  $(CBOTSOURCEFILES) $(MESSAGESOURCE)
 	                   $(CFLAGS)  \
 	                -x c++  cordiebot.cpp $(CBOTSOURCEFILES) $(MESSAGESOURCE) $(LDLIBS)
 	                        
-cordiebot_listen: pubnubprocess.cpp \
+cordiebot_listen: cordiebot_listen.cpp \
                                       $(SOURCEFILES) $(MESSAGESOURCE) \
                                        $(CALLBACK_INTF_SOURCEFILES) \
                                       ../c-core/cpp/pubnub_futres_cpp11.cpp
 	$(CXX) -o $@ -std=c++11 -ljsoncpp \
 	                   -D PUBNUB_CALLBACK_API $(CFLAGS) $(CFLAGS_CALLBACK) \
-	                -x c++  pubnubprocess.cpp \
+	                -x c++  cordiebot_listen.cpp \
 	                        $(CALLBACK_INTF_SOURCEFILES) \
 	                        ../c-core/cpp/pubnub_futres_cpp11.cpp \
 	                        $(SOURCEFILES) $(LDLIBS) $(MESSAGESOURCE)
+
+cordiebot_speak: cordiebot_speak.cpp \
+                                      $(SOURCEFILES)  \
+                                       $(CALLBACK_INTF_SOURCEFILES) \
+                                      ../c-core/cpp/pubnub_futres_cpp11.cpp
+	$(CXX) -o $@ -std=c++11 -ljsoncpp \
+	                   -D PUBNUB_CALLBACK_API $(CFLAGS) $(CFLAGS_CALLBACK) \
+	                -x c++  cordiebot_speak.cpp \
+	                        $(CALLBACK_INTF_SOURCEFILES) \
+	                        ../c-core/cpp/pubnub_futres_cpp11.cpp \
+	                        $(SOURCEFILES) $(LDLIBS) 
 endif
 
 
