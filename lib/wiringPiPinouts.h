@@ -6,6 +6,9 @@
  *
  */
  
+#ifndef WIRINGPIPINOUTS_H
+#define WIRINGPIPINOUTS_H
+ 
 #define GPIO0 0
 #define GPIO1 1
 #define GPIO2 2
@@ -35,3 +38,4 @@
 #define SDA0 30
 #define SCL0 31
 
+#endif

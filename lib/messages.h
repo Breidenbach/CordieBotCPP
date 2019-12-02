@@ -1,5 +1,8 @@
 // -*- mode: c++ -*-
-#pragma once
+
+#ifndef MESSAGES_H
+#define MESSAGES_H
+
 #include <string>
 #include <vector>
 #include <fstream>
@@ -81,3 +84,5 @@ public:
     void resequence();
     void reload();
 };
+
+#endif

@@ -14,6 +14,9 @@
  *
  */
  
+#ifndef COUNTBUTTON_H
+#define COUNTBUTTON_H
+
 #include <wiringPi.h>
 #include <ctime>
 #include <chrono>
@@ -36,3 +39,5 @@ public:
     countButton(int pin, double gap);
     int read();
 };
+
+#endif

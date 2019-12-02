@@ -34,12 +34,16 @@ SOURCEFILES = ../c-core/core/pubnub_pubsubapi.c \
               ../c-core/core/pubnub_url_encode.c 
 
 # source file for message procesing           
-MESSAGESOURCE = ../lib/messages.cpp
+MESSAGESOURCE = ../lib/messages.cpp \
+                ../lib/messages.h
 
 # source files for CordieBot main app              
 CBOTSOURCEFILES = ../lib/wiringPiMCP3002.cpp \
+                  ../lib/wiringPiMCP3002.h \
                   ../lib/wiringPiTLC59711.cpp \
-                  ../lib/countButton.cpp
+                  ../lib/wiringPiTLC59711.h \
+                  ../lib/countButton.cpp \
+                  ../lib/countButton.h
 
 
     
