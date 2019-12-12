@@ -1,6 +1,6 @@
 #include "messages.h"
 
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
 #include <iostream>
 #endif
@@ -9,18 +9,28 @@
  *
  *  Message class
  *
+ *  ID - unique ID number for Message
+ *  type - 1 = specific day of specific year
+ *         2 = specific day of any year
+ *         3 = any timer
+ *  year - year value or 0
+ *  month - month value or 0
+ *  day - day value or 0  (month and day will either both be set or both
+ *            be 0)
+ *  content - message to be spoken
+ *
  ***********************************************************************************/
 
 Message::Message() {
-    ID_ = "0";
-    type_ = 0;
+    ID_ = "0";  // unique number for message
+    type_ = 0;  // 1 = specific day of specific year, 
     year_ = 0;
     month_ = 0;
     day_ = 0;
     content_ = "";
 }
 
-void Message::set_ID(string const &ID) {
+void Message::set_ID(std::string const &ID) {
   ID_ = ID;
 }
 
@@ -40,11 +50,11 @@ void Message::set_day(int const &day) {
   day_ = day;
 }
 
-void Message::set_content(string const &content) {
+void Message::set_content(std::string const &content) {
   content_ = content;
 }
 
-const string& Message::ID() const {
+const std::string& Message::ID() const {
   return ID_;
 }
 
@@ -64,7 +74,7 @@ const int& Message::day() const {
   return day_;
 }
 
-const string& Message::content() const {
+const std::string& Message::content() const {
   return content_;
 }
 
@@ -86,19 +96,19 @@ Json::Value Message::ToJson() const {
  ***********************************************************************************/
 
 MsgList::MsgList() {
-  messages_ = vector<Message>();
+  messages_ = std::vector<Message>();
   count_ = 0;
   #ifdef DEBUG
     std::cout << "Constructing MsgList " << std::endl;
   #endif
 }
 
-const vector<Message>& MsgList::messages() const {
+const std::vector<Message>& MsgList::messages() const {
   return messages_;
 }
 
-void MsgList::AddMessage(string const &ID, int const &type, int const &year, int const &month,
-                                    int const &day, string const &content) {
+void MsgList::AddMessage(std::string const &ID, int const &type, int const &year, int const &month,
+                                    int const &day, std::string const &content) {
   #ifdef DEBUG
     std::cout << "MsgList::AddMEssage " << ID << "," << type << "," << year <<
                          "," << month << "," << day << "," << content << std::endl;
@@ -114,7 +124,7 @@ void MsgList::AddMessage(string const &ID, int const &type, int const &year, int
 }
 
 bool MsgList::erase(std::string mid){
-    for (vector<Message>::const_iterator vit_ = messages_.begin();
+    for (std::vector<Message>::const_iterator vit_ = messages_.begin();
                          vit_ != messages_.end(); ++vit_) {
         if (mid == (*vit_).ID()){
             messages_.erase(vit_);
@@ -131,9 +141,9 @@ void MsgList::JsonSave(const char* filename) {
     #ifdef DEBUG
         std::cout << "MsgList::JsonSave filename: " << filename << std::endl;
     #endif
-    ofstream out(filename, ofstream::out);
+    std::ofstream out(filename, std::ofstream::out);
     Json::Value book_json(Json::objectValue), messages_json(Json::arrayValue);
-    for (vector<Message>::iterator it = messages_.begin(); it != messages_.end(); ++it) {
+    for (std::vector<Message>::iterator it = messages_.begin(); it != messages_.end(); ++it) {
         ++count_;
         messages_json.append((*it).ToJson());
     }
@@ -153,12 +163,12 @@ void MsgList::JsonReseq(const char* filename) {
         std::cout << "MsgList::JsonSave filename: " << filename << std::endl;
     #endif
     int new_id_ = 0;
-    ofstream out(filename, ofstream::out);
+    std::ofstream out(filename, std::ofstream::out);
     Json::Value book_json(Json::objectValue), messages_json(Json::arrayValue);
-    for (vector<Message>::iterator it = messages_.begin(); it != messages_.end(); ++it) {
+    for (std::vector<Message>::iterator it = messages_.begin(); it != messages_.end(); ++it) {
         ++new_id_;
         Message temp_ = Message();
-        temp_.set_ID(to_string(new_id_));
+        temp_.set_ID(std::to_string(new_id_));
         temp_.set_type((*it).type());
         temp_.set_year((*it).year());
         temp_.set_month((*it).month());
@@ -182,7 +192,7 @@ void MsgList::clear(){
 }
 
 void MsgList::JsonLoad(const char* filename) {
-  ifstream in(filename);
+  std::ifstream in(filename);
   Json::Value book_json;
   in >> book_json;
   count_ = 0;
@@ -212,7 +222,7 @@ int MsgList::count(){
 
 bool MsgList::empty(){
     #ifdef DEBUG
-        std::cout << "empty test:  " << messages_.empty() << endl;
+        std::cout << "empty test:  " << messages_.empty() << std::endl;
     #endif
     return messages_.empty();
 }
@@ -220,6 +230,11 @@ bool MsgList::empty(){
 /***********************************************************************************
  *
  *  MessageBank class
+ *
+ *  Counts:
+ *   When requested, the class will count records of each type, with the constraint
+ *   that the counts of type 2 and 3 messages will only include the ones for a 
+ *   specific date.
  *
  ***********************************************************************************/
 
@@ -231,7 +246,7 @@ MessageBank::MessageBank(const char* filename) {
     #endif
 }
 
-const string& MessageBank::ID() const {
+const std::string& MessageBank::ID() const {
     return (*vit_).ID();
 }
 
@@ -251,12 +266,99 @@ const int& MessageBank::day() const {
     return (*vit_).day();
 }
 
-const string& MessageBank::content() const {
+const std::string& MessageBank::content() const {
     return (*vit_).content();
 }
 
-void MessageBank::addEntry(string const &ID, int const &type, int const &year, int const &month,
-                                    int const &day, string const &content){
+void MessageBank::setCounts(int const &year, int const &month, int const &day){
+    type1_count_ = 0;
+    type2_count_ = 0;
+    type3_count_ = 0;
+    this_year_ = year;
+    this_month_ = month;
+    this_day_ = day;
+    for (vit_ = proclamations_.messages().begin();
+                         vit_ != proclamations_.messages().end(); ++vit_) {
+        switch ((*vit_).type()) {
+            case 1: {   if (((*vit_).year() == year) &&
+                        ((*vit_).month() == month) && ((*vit_).day() == day)){
+                            ++type1_count_;
+                        }
+                        break;
+                    }
+            case 2: {   if (((*vit_).month() == month) && ((*vit_).day() == day)){
+                            ++type2_count_;
+                        }
+                        break;
+                    }
+            case 3: {   ++type3_count_;
+                        break;
+                    }
+        }
+    }
+    #ifdef DEBUG
+      std::cout << "MessageBank::setCounts: " << type3_count_ << ", " << 
+                type2_count_ << ", " << type1_count_ << std::endl;
+    #endif
+}
+
+int MessageBank::type3count(){
+    return type3_count_;
+}
+
+int MessageBank::type2count(){
+    return type2_count_;
+}
+
+int MessageBank::type1count(){
+    return type1_count_;
+}
+
+/*  Note that getNthEntry() requires that year, month, and day were previously saved,
+    Like in setCounts()
+*/
+std::string MessageBank::getNthEntry(int type, int n){
+    int count_ = 0;
+    for (vit_ = proclamations_.messages().begin();
+                         vit_ != proclamations_.messages().end(); ++vit_) {
+        if ((*vit_).type() == type) {
+            switch (type) {
+                case 1: {   if (((*vit_).year() == this_year_) &&
+                                    ((*vit_).month() == this_month_) &&
+                                    ((*vit_).day() == this_day_)){
+                                ++count_;
+                            }
+                            if (count_ == n) {
+                                return (*vit_).content();
+                            }
+                            break;
+                        }
+                case 2: {   if (((*vit_).month() == this_month_) &&
+                                    ((*vit_).day() == this_day_)){
+                                ++count_;
+                            }
+                            if (count_ == n) {
+                                return (*vit_).content();
+                            }
+                            break;
+                        }
+                case 3: {   ++count_;
+                            if (count_ == n) {
+                                return (*vit_).content();
+                            }
+                            break;
+                        }
+            }
+         }
+    } 
+    #ifdef DEBUG
+      std::cout << "MessageBank::getNthEntry at end of vector " << std::endl;
+    #endif
+    return ("I have nothing to say about that.");
+}
+
+void MessageBank::addEntry(std::string const &ID, int const &type, int const &year, int const &month,
+                                    int const &day, std::string const &content){
     proclamations_.AddMessage(ID, type, year, month, day, content);
     proclamations_.JsonSave(fname_);
 } 
@@ -282,10 +384,10 @@ std::string MessageBank::getNextID()  {
                          vit_ != proclamations_.messages().end(); ++vit_) {
         if (stoi((*vit_).ID()) > tempID) { tempID = stoi((*vit_).ID());}
     }
-    return to_string(tempID + 1);
+    return std::to_string(tempID + 1);
 }
 
-bool MessageBank::CheckID (string mid) {
+bool MessageBank::CheckID (std::string mid) {
     for (vit_ = proclamations_.messages().begin();
                          vit_ != proclamations_.messages().end(); ++vit_) {
         if (mid == (*vit_).ID()){
