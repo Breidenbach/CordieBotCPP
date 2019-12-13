@@ -68,7 +68,8 @@ int main()
                     const std::string prelude ("aoss swift \"<prosody rate='-0.3'> ");
                     const std::string postlude ("\"");
                     std::string content = root["content"].asString();
-                    std::cout << "msg content:  " << content << std::endl;
+                    std::cout << "msg content:  " << content << "  length: " <<
+                                     content.length() << std::endl;
                     std::string totality = prelude + content + postlude;
                     const char *speak = totality.c_str();
                     system(speak);
