@@ -42,8 +42,11 @@ CBOTSOURCEFILES = ../lib/wiringPiMCP3002.cpp \
                   ../lib/wiringPiMCP3002.h \
                   ../lib/wiringPiTLC59711.cpp \
                   ../lib/wiringPiTLC59711.h \
+                  ../lib/cbotLights.cpp \
+                  ../lib/cbotLights.h \
                   ../lib/countButton.cpp \
                   ../lib/countButton.h
+                  
 
 
     
@@ -134,8 +137,10 @@ SOURCEFILES += ../c-core/posix/monotonic_clock_get_time_darwin.c
 LDLIBS=-lpthread
 else
 SOURCEFILES += ../c-core/posix/monotonic_clock_get_time_posix.c
-LDLIBS=-lrt -lpthread -ljsoncpp -lwiringPi
+LDLIBS=-lrt -ljsoncpp -pthread
 endif
+
+CBLIBS=-lcurl -lpthread -lwiringPi
 
 #CFLAGS =-g -I .. -I . \  # when using debugger
 CFLAGS =   -I .. -I . \
@@ -161,7 +166,8 @@ all: cpp11
 ifeq ($(DO_CORDIEBOT), 1)
 
 
-cpp11:      cordiebot_listen \
+cpp11:      create_message_file \
+            cordiebot_listen \
             cordiebot_speak \
             cordiebot
 
@@ -227,7 +233,14 @@ ifeq ($(DO_CORDIEBOT), 1)
 cordiebot: cordiebot.cpp  $(CBOTSOURCEFILES) $(MESSAGESOURCE) 
 	$(CXX) -o $@ -std=c++11  -L ../lib \
 	                   $(CFLAGS)  \
-	                -x c++  cordiebot.cpp $(CBOTSOURCEFILES) $(MESSAGESOURCE) $(LDLIBS)
+	                -x c++  cordiebot.cpp $(CBOTSOURCEFILES) $(MESSAGESOURCE) \
+	                   $(LDLIBS) $(CBLIBS)
+	                        
+create_message_file: create_message_file.cpp  $(CBOTSOURCEFILES) $(MESSAGESOURCE) 
+	$(CXX) -o $@ -std=c++11  -L ../lib \
+	                   $(CFLAGS)  \
+	                -x c++  create_message_file.cpp $(CBOTSOURCEFILES) $(MESSAGESOURCE) \
+	                   $(LDLIBS) $(CBLIBS)
 	                        
 cordiebot_listen: cordiebot_listen.cpp \
                                       $(SOURCEFILES) $(MESSAGESOURCE) \
@@ -256,6 +269,8 @@ endif
 
 clean:
 	rm cordibot \
-	    cordibot_process \
+        create_message_file \
+    	cordibot_speak \
+    	cordibot_listen \
 	   ../c-core/fntest_runner \
 	   ../c-core/*.dSYM
