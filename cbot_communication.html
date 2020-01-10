@@ -73,19 +73,19 @@
     <fieldset class="section" id="itemchoice_label">
         <legend>When will this message be used?</legend>
         <div>
-            <input type="radio" id="itemchoice" name="item_choice" value="One-day" checked onclick="handleItemChoice(1);">
+            <input type="radio" id="yearspecific" name="item_choice" value="One-day" checked onclick="handleItemChoice(1);">
             <label for="One-day">
                 Just this one day.
             </label>
         </div>
         <div>
-            <input type="radio" id="itemchoice" name="item_choice" value="Annually" onclick="handleItemChoice(2);">
+            <input type="radio" id="everyyear" name="item_choice" value="Annually" onclick="handleItemChoice(2);">
             <label for="Annually">
                 This day every year.
             </label>
         </div>
         <div>
-            <input type="radio" id="itemchoice" name="item_choice" value="Any-day" onclick="handleItemChoice(3);">
+            <input type="radio" id="anytime" name="item_choice" value="Any-day" onclick="handleItemChoice(3);">
             <label for="Any-day">
                 Any time.
             </label>
@@ -278,12 +278,14 @@
                 case ANY_TIME:
                     break;
                 default:
+                    return false;
             }
             return item_ok;
         }
         function disableYear() {
             console.log('in disable year');
             x = document.getElementById("year");
+            x.value = "";
             xl = document.getElementById("year_label");
 		    xl.innerHTML = "Effective Date (yyyy)";
             disableEntry("year");
@@ -298,10 +300,12 @@
         function disableMonthDay() {
             disableEntry("month");
             x = document.getElementById("month");
+            x.value = "";
             xl = document.getElementById("month_label");
 		    xl.innerHTML = "(mm)";
             disableEntry("day");
             x = document.getElementById("day");
+            x.value = "";
             xl = document.getElementById("day_label");
 		    xl.innerHTML = "(dd)";
         }
@@ -412,18 +416,10 @@
 		        field_ok = false;                
                 x.focus();
             } else { 
-                if (msg.indexOf('\'') > -1) {
-		        x.style.color='#ff0000';
-		        xl.style.color='#ff0000';
-		        xl.innerHTML = "Single quotes not allowed in message.";                
-		        field_ok = false;                
-                x.focus();
-                } else {
-		            x.style.color='#000000';
-		            xl.style.color='#000000';
-		            xl.innerHTML = "Message";
-		            field_ok = true;  
-		        }
+                x.style.color='#000000';
+                xl.style.color='#000000';
+                xl.innerHTML = "Message";
+                field_ok = true;  
 		    }              
 		    return field_ok
         }
@@ -472,7 +468,7 @@
         var pubnub = new PubNub({ publishKey : Publish,
                   subscribeKey : Subscribe });
         var button = document.querySelector("button");
-        var jsonData = {'action':'', 'ID':'', 'type':'', 'year':'', 'month':'', 'day':'', 'content':''}
+        var jsonData = {"action":"","response":"", "ID":'', "type":"", "year":"", "month":"", "day":"", "content":""}
         function $(id) { return document.getElementById(id); }
         var typebox = $(0);
         day.value = String(today.getDate()).padStart(2, '0');
@@ -480,118 +476,68 @@
         year.value = today.getFullYear();
         var channel = 'cordiebot';
         var talkChannel = 'cordietalk'
+        console.log('ready to addListener.');
         pubnub.addListener({
             message: function(obj) {
-                rspns = '' + obj.message;
-                console.log("obj.message = ", rspns);
-                console.log("rspns includes End  ", rspns.includes("End"))
-                split = rspns.indexOf('{');
-                console.log('split = ', split);
-                if (split > -1) {
-                    resps_action = rspns.substring(0, split) + '<br>';
-                    console.log('resps_action = ', resps_action);
-                    info = rspns.substring(split);
-                    console.log('info = ', info);
-                    qinfo = info.replace(/\'/g, '"');
-                    console.log(qinfo);
-                    switch (actionSelection) {
-                        case ADD_ENTRY:
-                            result.innerHTML = "Message added.";
-                            break;
-                        case CHANGE_ENTRY:
-                            result.innerHTML = "Message changed.";
-                            break;
-                        case DELETE_ENTRY:
-                            result.innerHTML = "Message deleted.";
-                            break;
-                        case RETRIEVE_ENTRY:
-                        case RETRIEVE_DATE:
-                        case RETRIEVE_ALL:
-                            result.innerHTML = "Message retrieved.";
-                            //  message not found from RETRIEVE processes
-                            //    is handled in "outer else"
-                            break;
-                        case RESEQUENCE:
-                            //  RESEQUENCE is handled in "outer else"
-                            break;
-                        default:
-                            result.innerHTML = "";
-                    }
-                    if (actionSelection == ADD_ENTRY ||
-                                 actionSelection == RETRIEVE_ENTRY ||
-                                 actionSelection == RETRIEVE_ALL ||
-                                 actionSelection == RETRIEVE_ALL_NEXT ||
-                                 actionSelection == RETRIEVE_DATE ||
-                                 actionSelection == RETRIEVE_DATE_NEXT  ) {
-                        pdata = JSON.parse(qinfo);
-                        setData("content",pdata['content']);
-                        setDataZ("year",pdata['year']);
-                        setDataZ("month",pdata['month']);
-                        setDataZ("day",pdata['day']);
-                        dateSelection = pdata['type'];
-                        rbutton = document.getElementsByName("item_choice");
-                        rbutton[dateSelection - 1].checked = true;
-                        setData("message_id",pdata['ID']);
-                        if (actionSelection == RETRIEVE_ALL) {
-                            actionSelection = RETRIEVE_ALL_NEXT; 
-                            console.log("retrieve all -> retrieve all next");
-                            button.innerHTML = "RETRIEVE NEXT";
-                        } else {
+                console.log("obj.message ", obj.message);
+                action = obj.message["action"];
+                response = obj.message["response"];
+                console.log("message response: ", response);
+                result.innerHTML = response;
+                if (action == ADD_ENTRY ||
+                             action == RETRIEVE_ENTRY ||
+                             action == RETRIEVE_ALL ||
+                             action == RETRIEVE_ALL_NEXT ||
+                             action == RETRIEVE_DATE ||
+                             action == RETRIEVE_DATE_NEXT  ) {
+                    console.log("in actionSelection if statement.")
+                    setData("content",obj.message['content']);
+                    setDataZ("year",obj.message['year']);
+                    setDataZ("month",obj.message['month']);
+                    setDataZ("day",obj.message['day']);
+                    dateSelection = obj.message['type'];
+                    console.log("dateSelection ", dateSelection)
+                    rbutton = document.getElementsByName("item_choice");
+                    rbutton[dateSelection - 1].checked = true;
+                    setData("message_id",obj.message['ID']);
+                    if (actionSelection == RETRIEVE_ALL) {
+                        actionSelection = RETRIEVE_ALL_NEXT; 
+                        console.log("retrieve all -> retrieve all next");
+                        button.innerHTML = "RETRIEVE NEXT";
+                    } else {
                         if (actionSelection == RETRIEVE_DATE) {
                             actionSelection = RETRIEVE_DATE_NEXT; 
                             console.log("retrieve by date -> retrieve by date next");
                             button.innerHTML = "RETRIEVE NEXT";
-                        }}
-                    } else {
-                        console.log("inner else");
+                        }
                     }
-                } else {
-                    console.log("outer else")
-                    if (rspns.includes("not found")) {
-                        result.innerHTML = rspns.substring(18);
-                        content.value = "";
-                    } else {
-                    if (rspns.includes("Resequence")) {
-                        result.innerHTML = rspns;
-                        content.value = "";
-                    } else {
-                        result.innerHTML = "";
-                    }}
-                    if ((actionSelection == RETRIEVE_ALL_NEXT) && 
-                            rspns.includes("End")) {
-                        actionSelection = RETRIEVE_ALL;
-                        result.innerHTML = "End of messages."
-                        console.log("retrieve all next -> retrieve all");
-                        button.innerHTML = "RETRIEVE ALL";
-                    } else {
-                    if ((actionSelection == RETRIEVE_DATE_NEXT) && 
-                            rspns.includes("End")) {
-                        actionSelection = RETRIEVE_DATE;
-                        result.innerHTML = "End of messages."
-                        console.log("retrieve by date next -> retrieve by date");
-                        button.innerHTML = "RETRIEVE by DATE";
-                    }}
-                    //box.innerHTML = (''+obj.message).replace( /[<>]/g, '' ) + '<br>' + box.innerHTML;
-                }
-              }});
-            pubnub.subscribe({channels:[channel,talkChannel]});
-            button.addEventListener('click', function() {
-                //   console.log(checkVariables(actionSelection))
-                if (checkVariables(actionSelection)) {
-                    jsonData.action = actionSelection;
-                    jsonData.ID = message_id.value;
-                    jsonData.type = dateSelection;
-                    jsonData.year = parseInt(year.value);
-                    jsonData.month = parseInt(month.value);
-                    jsonData.day = parseInt(day.value);
-                    jsonData.content = content.value;
-                    pubnub.publish({channel : channel,message : jsonData,x });
-            }});
-            button2.addEventListener('click', function() {
-                //   console.log(checkVariables(actionSelection))
+                } 
+            }
+        });
+        pubnub.subscribe({channels:[channel,talkChannel]});
+        button.addEventListener('click', function() {
+            //   console.log(checkVariables(actionSelection))
+            if (checkVariables(actionSelection)) {
+                console.log("publish y m d", year.value, month.value, day.value);
+                console.log("publish ID, dateSelection", message_id.value, dateSelection);
+                jsonData.action = actionSelection;
+                jsonData.response = "";
+                jsonData.ID = message_id.value;
+                jsonData.type = dateSelection;
+                jsonData.year = parseInt(year.value);
+                jsonData.month = parseInt(month.value);
+                jsonData.day = parseInt(day.value);
                 jsonData.content = content.value;
-                pubnub.publish({channel : talkChannel, message : jsonData,x });
-            
+                console.log("jsonData: ", jsonData.action, jsonData.content);
+                pubnub.publish({channel : channel,message : jsonData,x });
+            }
+        });
+        button2.addEventListener('click', function() {
+            //   console.log(checkVariables(actionSelection))
+            jsonData.content = content.value;
+            console.log("jsonData2: ", jsonData.content);
+            pubnub.publish({channel : talkChannel, message : jsonData,x });
+        
         });
     })();
     </script>

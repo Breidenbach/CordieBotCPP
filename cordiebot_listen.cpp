@@ -40,7 +40,7 @@
 
 std::string adjustApostropies(std::string str){
     std::string work = str;
-    std::replace(work.begin(), work.end(), '\"', '\'' );
+//    std::replace(work.begin(), work.end(), '\"', '\'' );
     std::replace(work.begin(), work.end(), '\n', ' ' ); 
     return work;                          
 }
@@ -64,7 +64,7 @@ int main()
     }    
     
     MessageBank mbank("proclamations.txt");
-    string message_reply;
+    std::string message_reply;
     #ifdef DEBUG
         std::cout << "input message count:  " << mbank.count() << std::endl;
     #endif
@@ -165,10 +165,13 @@ int main()
             #endif
             do {
                 msg = pb.get();
-                string next_entry;
+                std::string next_entry;
                 std::cout << msg << std::endl;
-                if (!msg.empty() && (msg != message_reply)){
+                
+                if (!msg.empty() && (msg.compare(message_reply) != 0)){
                     #ifdef DEBUG
+                        std::cout << "|" << msg << "|" << std::endl;
+                        std::cout << "|" << message_reply << "|" << std::endl;
                         std::cout << "bool = " << !msg.empty() <<
                                              (msg != message_reply) << std::endl;
                         std::cout << "Just checked if not equal to sent message again" 
@@ -180,43 +183,58 @@ int main()
                     reader.parse(msg, root);
                     ID = root["ID"].asString();
                     action = root["action"].asInt();
-                    type = root["type"].asInt();
-                    day = root["day"].asInt();
-                    month = root["month"].asInt();
-                    year = root["year"].asInt();
+                    if (root["day"].isNull()) { day = 0; }
+                        else {day = root["day"].asInt();}
+                    if (root["month"].isNull()) { month = 0; }
+                        else {month = root["month"].asInt();}
+                    if (root["year"].isNull()) { year = 0; }
+                        else {year = root["year"].asInt();}
+                    if (root["type"].isNull() || root["type"].compare("") == 0)
+                    { 
+                        if (year == 0 && month == 0 && day == 0)
+                        { type = 3; }
+                        else
+                        {
+                            if (year == 0)
+                            { type = 2; }
+                            else
+                            { type = 1; }
+                        }
+                    }
+                    else
+                    {
+                        type = root["type"].asInt();
+                    }
                     content = root["content"].asString();
+                    #ifdef DEBUG
+                        std::cout << "action = " << action << std::endl;
+                    #endif
                     Json::Value reply_root;
+                    reply_root = root;
+                    reply_root["type"] = type;
                     Json::FastWriter writer;
                     switch (action){
                         case ADD_ENTRY:
                             next_entry = mbank.getNextID();
                             std::cout << "next entry returns:  " << next_entry << std::endl;
                             mbank.addEntry(next_entry, type, year, month, day, content);
-                            root["ID"] = next_entry;
-                            reply_string = adjustApostropies(writer.write(root));
-                            message_reply = "\"Action = add.  New ID is " +
-                                        next_entry  + ". " + reply_string +"\"";
-                            std::cout << message_reply << std::endl;
+                            reply_root["ID"] = next_entry;
+                            reply_root["response"] = "Message added.";
                             break;
                         case CHANGE_ENTRY:
                             if (mbank.erase(ID)) {
                                 mbank.addEntry(ID, type, year, month, day, content);
-                                reply_string = adjustApostropies(writer.write(root));
-                                message_reply = "\"Action = change. " + reply_string +"\"";
-                                std::cout << message_reply << std::endl;
+                                reply_root["response"] = "Message changed.";
                             } else {
-                                message_reply = "\"Action = change.  Message " +
-                                                             ID + " not found.\"";
+                                reply_root["response"] = "Message " + ID + " not found.";
                             }  // if (mbank.erase(ID))
                             break;
                         case DELETE_ENTRY:
                             if (mbank.erase(ID)) {
                                 reply_string = adjustApostropies(writer.write(root));
-                                message_reply = "\"Action = delete. " + reply_string +"\"";
-                                std::cout << message_reply << std::endl;
+                                reply_root["response"] = "Message deleted.";
                             } else {
-                                message_reply = "\"Action = delete.  Message " +
-                                                             ID + " not found.\"";
+                                reply_root["response"] = "Message " + ID + " not found.";
                             }  // if (mbank.erase(ID))
                             break;
                         case RETRIEVE_ENTRY:
@@ -229,14 +247,9 @@ int main()
                                 reply_root["day"] = mbank.day();
                                 reply_root["type"] = mbank.type();
                                 reply_root["content"] = mbank.content();
-                                reply_string = writer.write(reply_root);
-                                message_reply = adjustApostropies(reply_string);
-                                message_reply = "\"Action = retrieve.  " +
-                                                         message_reply + "\"";
-                                std::cout << message_reply << std::endl;
+                                reply_root["response"] = "Message retrieved.";
                             } else {
-                                message_reply = "\"Action = retrieve.  Message " +
-                                                             ID + " not found.\"";
+                                reply_root["response"] = "Message " + ID + " not found.";
                             }  // if (mbank.CheckID(ID))
                             break;
                         case RETRIEVE_DATE:
@@ -248,14 +261,10 @@ int main()
                                 reply_root["type"] = mbank.type();
                                 reply_root["content"] = mbank.content();
                                 reply_string = writer.write(reply_root);
-                                message_reply = adjustApostropies(reply_string);
-                                message_reply = "\"Action = get by date.  " +
-                                                         message_reply + "\"";
-                                std::cout << message_reply << std::endl;
+                                reply_root["response"] = "First entry for this date.";
                             } else {
-                                message_reply = "\"Action = get by date.  Entries for " +
-                                         to_string(month)  + "/" + to_string(day) +
-                                          " not found.\"";
+                                reply_root["response"] =
+                                        "Get by date: No entries found for this date.";
                             }  // if (mbank.getByDate(month, day))
                             break;
                         case RETRIEVE_DATE_NEXT:
@@ -267,14 +276,9 @@ int main()
                                 reply_root["type"] = mbank.type();
                                 reply_root["content"] = mbank.content();
                                 reply_string = writer.write(reply_root);
-                                message_reply = adjustApostropies(reply_string);
-                                message_reply = "\"Action = get by date next.  " +
-                                                         message_reply + "\"";
-                                std::cout << message_reply << std::endl;
+                                reply_root["response"] = "Next entry for this date.";
                             } else {
-                                message_reply =
-                                    "\"End of messages for " +
-                                         to_string(month)  + "/" + to_string(day) + "\"";
+                                reply_root["response"] = "No more messages for this date.";
                             }
                             break;
                         case RETRIEVE_ALL:
@@ -285,13 +289,9 @@ int main()
                                 reply_root["day"] = mbank.day();
                                 reply_root["type"] = mbank.type();
                                 reply_root["content"] = mbank.content();
-                                reply_string = writer.write(reply_root);
-                                message_reply = adjustApostropies(reply_string);
-                                message_reply = "\"Action = get all.  " +
-                                                         message_reply + "\"";
-                                std::cout << message_reply << std::endl;
+                                reply_root["response"] = "First entry for get all.";
                             } else {
-                                message_reply = "\"Action = get all.  No entries found.\"";
+                                reply_root["response"] = "Get all.  No entries found.";
                             }  // if (mbank.getAllStart())
                             break;
                         case RETRIEVE_ALL_NEXT:
@@ -302,25 +302,22 @@ int main()
                                 reply_root["day"] = mbank.day();
                                 reply_root["type"] = mbank.type();
                                 reply_root["content"] = mbank.content();
-                                reply_string = writer.write(reply_root);
-                                message_reply = adjustApostropies(reply_string);
-                                message_reply = "\"Action = get all.  " +
-                                                         message_reply + "\"";
-                                std::cout << message_reply << std::endl;
+                                reply_root["response"] = "Get all:  Next entry.";
                             } else {
-                                message_reply = "\"End of messages.\"";
+                                reply_root["response"] = "Get all:  No more messages.";
                             }  // if (mbank.getAllNext())
                             break;
                         case RESEQUENCE:
                             mbank.resequence();
-                            message_reply = "\"Resequenced " + 
-                                       to_string(mbank.count()) + " messages.\"";
+                            reply_root["response"] = "Resequenced " + 
+                                   std::to_string(mbank.count()) + " messages.";
                             break;
                         default:
-                                message_reply = "\"Action unknown " + to_string(action)
-                                                     + "\"";
+                                reply_root["response"] = "Action unknown.";
                             break;
                     }  //  switch(action)
+                    message_reply = writer.write(reply_root);
+                    message_reply.pop_back();  //  remove \n from end of string.
                 }  //  if (!msg.empty() && (msg != sent_message))
             } while (!msg.empty());
         }

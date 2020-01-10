@@ -72,6 +72,7 @@ int main()
                                      content.length() << std::endl;
                     std::string totality = prelude + content + postlude;
                     const char *speak = totality.c_str();
+                    std::cout << "speak: " << speak << std::endl;
                     system(speak);
                 }
 
