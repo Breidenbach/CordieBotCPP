@@ -26,7 +26,6 @@
 #include <curl/curl.h>
 #include <bits/stdc++.h> 
 #include <curl/curl.h>
-#include <csignal>
 
 
 #define DEBUG
@@ -174,9 +173,11 @@ float checkFan(float average_temp){
     float volts = tempSensor.getVolts();
     float sample_temp = (volts * 190.8) - 68.8;
     float new_average_temp = average_temp * 0.95 + sample_temp * 0.05;
-    if (new_average_temp > 90.0){
+    if (new_average_temp > 100.0){
         digitalWrite(FAN, HIGH);  // Turn on fan
-    } else { 
+    }
+    else
+    {
         digitalWrite(FAN, LOW);
     }
     return new_average_temp;
@@ -511,6 +512,7 @@ int main()
     init();
     
     int counter;
+    int file_check_counter = 0;
     float internal_temp;
     bool internetPresent = internet();
     #ifdef DEBUG
@@ -522,7 +524,7 @@ int main()
     while(1) {
         counter = button.read();
         if( counter == 0){
-            usleep(100*1000); 	// Delay 100ms
+            usleep(200*1000); 	// Delay 100ms
         } else {
             #ifdef DEBUG
                 std::cout << "button:  " << counter << std::endl;
@@ -543,7 +545,7 @@ int main()
                 case 9: {   tellInternalTemp(internal_temp);
                             break;
                         }
-                case 7: {  tellEasterEgg();
+                case 17: {  tellEasterEgg();
                             break;                        
                         }
                 default: {
@@ -554,6 +556,16 @@ int main()
             }
         }
         internal_temp = checkFan(internal_temp);
+        ++file_check_counter;
+        if (file_check_counter > 300){  // check once a minute (with 200ms sleep)
+            if (mbank.changed()){
+                mbank.reload();
+                #ifdef DEBUG
+                    std::cout << "reloading messages" << std::endl;
+                #endif
+             }
+             file_check_counter = 0;
+        }
     }
     return 0;
 }
