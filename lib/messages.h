@@ -6,7 +6,9 @@
 #include <string>
 #include <vector>
 #include <fstream>
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <jsoncpp/json/json.h>
 
 #define MESSAGE_TYPE_1 1
@@ -43,6 +45,8 @@ private:
     std::vector<Message> messages_;
     char* fname_;
     int count_;
+    time_t lastModTime_;
+    void setModTime(const char* filename);
 public:
     MsgList();
     const std::vector<Message>& messages() const;
@@ -57,6 +61,7 @@ public:
     const std::vector<Message>::iterator& end();
     int count();
     bool empty();
+    bool changed(const char* filename);
 };
 
 class MessageBank {
@@ -64,12 +69,16 @@ private:
     const char* fname_;
     MsgList proclamations_;
     std::vector<Message>::const_iterator vit_;
+    bool vector_valid_;
     int type3_count_;
     int type2_count_;
     int type1_count_;
     int this_year_;
     int this_month_;
     int this_day_;
+    const std::string zero_id_ = "0";
+    const std::string empty_string_ = "";
+    const int zero_return_ = 0;
 public:
     MessageBank(const char* fname);
     const std::string& ID() const;
@@ -96,6 +105,7 @@ public:
     int count();
     void resequence();
     void reload();
+    bool changed();
 };
 
 #endif

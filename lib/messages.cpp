@@ -103,6 +103,15 @@ MsgList::MsgList() {
   #endif
 }
 
+void MsgList::setModTime(const char* filename) {
+    struct stat sb;
+    stat(filename, &sb);
+    lastModTime_ = sb.st_ctime;
+    #ifdef DEBUG
+        std::cout << "Setting lastModTime " << lastModTime_ << std::endl;
+    #endif
+}
+
 const std::vector<Message>& MsgList::messages() const {
   return messages_;
 }
@@ -110,7 +119,7 @@ const std::vector<Message>& MsgList::messages() const {
 void MsgList::AddMessage(std::string const &ID, int const &type, int const &year, int const &month,
                                     int const &day, std::string const &content) {
   #ifdef DEBUG
-    std::cout << "MsgList::AddMEssage " << ID << "," << type << "," << year <<
+    std::cout << "MsgList::AddMessage " << ID << "," << type << "," << year <<
                          "," << month << "," << day << "," << content << std::endl;
   #endif
   Message msg = Message();
@@ -156,6 +165,7 @@ void MsgList::JsonSave(const char* filename) {
     #ifdef DEBUG
         std::cout << "JsonSave before resetting count, count: " << count_ << std::endl;
     #endif
+    setModTime(filename);
 }
 
 void MsgList::JsonReseq(const char* filename) {
@@ -185,6 +195,7 @@ void MsgList::JsonReseq(const char* filename) {
     #ifdef DEBUG
         std::cout << "JsonSave before resetting count, count: " << count_ << std::endl;
     #endif
+    setModTime(filename);
 }
 
 void MsgList::clear(){
@@ -211,6 +222,7 @@ void MsgList::JsonLoad(const char* filename) {
   #ifdef DEBUG
     std::cout << "closing in file, count: " << count_ << std::endl;
   #endif
+    setModTime(filename);
 }
 
 int MsgList::count(){
@@ -227,6 +239,18 @@ bool MsgList::empty(){
     return messages_.empty();
 }
 
+bool MsgList::changed(const char* filename) {
+    struct stat sb;
+    stat(filename, &sb);
+    #ifdef DEBUG
+        std::cout << "comparing mod time to current " << lastModTime_ << " >? " <<
+                                sb.st_ctime << std::endl;
+    #endif
+    return(lastModTime_ < sb.st_ctime);
+}
+
+
+
 /***********************************************************************************
  *
  *  MessageBank class
@@ -241,32 +265,39 @@ bool MsgList::empty(){
 MessageBank::MessageBank(const char* filename) {
     fname_ = filename;
     proclamations_.JsonLoad(fname_);
+    vector_valid_ = false;
     #ifdef DEBUG
       std::cout << "MessageBank::constructor fname_: " << fname_ << std::endl;
     #endif
 }
 
 const std::string& MessageBank::ID() const {
+    if (! vector_valid_) {return zero_id_;}
     return (*vit_).ID();
 }
 
 const int& MessageBank::type() const {
+    if (! vector_valid_) {return zero_return_;}
     return (*vit_).type();
 }
 
 const int& MessageBank::year() const {
+    if (! vector_valid_) {return zero_return_;}
     return (*vit_).year();
 }
 
 const int& MessageBank::month() const {
+    if (! vector_valid_) {return zero_return_;}
     return (*vit_).month();
 }
 
 const int& MessageBank::day() const {
+    if (! vector_valid_) {return zero_return_;}
     return (*vit_).day();
 }
 
 const std::string& MessageBank::content() const {
+    if (! vector_valid_) {return empty_string_;}
     return (*vit_).content();
 }
 
@@ -300,6 +331,7 @@ void MessageBank::setCounts(int const &year, int const &month, int const &day){
       std::cout << "MessageBank::setCounts: " << type3_count_ << ", " << 
                 type2_count_ << ", " << type1_count_ << std::endl;
     #endif
+    vector_valid_ = false;
 }
 
 int MessageBank::type3count(){
@@ -329,6 +361,7 @@ std::string MessageBank::getNthEntry(int type, int n){
                                 ++count_;
                             }
                             if (count_ == n) {
+                                vector_valid_ = true;
                                 return (*vit_).content();
                             }
                             break;
@@ -338,12 +371,14 @@ std::string MessageBank::getNthEntry(int type, int n){
                                 ++count_;
                             }
                             if (count_ == n) {
+                                vector_valid_ = true;
                                 return (*vit_).content();
                             }
                             break;
                         }
                 case 3: {   ++count_;
                             if (count_ == n) {
+                                vector_valid_ = true;
                                 return (*vit_).content();
                             }
                             break;
@@ -354,6 +389,7 @@ std::string MessageBank::getNthEntry(int type, int n){
     #ifdef DEBUG
       std::cout << "MessageBank::getNthEntry at end of vector " << std::endl;
     #endif
+    vector_valid_ = false;
     return ("I have nothing to say about that.");
 }
 
@@ -361,11 +397,13 @@ void MessageBank::addEntry(std::string const &ID, int const &type, int const &ye
                                     int const &day, std::string const &content){
     proclamations_.AddMessage(ID, type, year, month, day, content);
     proclamations_.JsonSave(fname_);
+    vector_valid_ = false;
 } 
 
 bool MessageBank::erase(std::string mid){
     if (proclamations_.erase(mid)){
         proclamations_.JsonSave(fname_);
+        vector_valid_ = false;
         return true;
     }
     return false;
@@ -375,7 +413,8 @@ void MessageBank::save() {
     #ifdef DEBUG
       std::cout << "MessageBank::save fname_: " << fname_ << std::endl;
     #endif
-     proclamations_.JsonSave(fname_);
+    proclamations_.JsonSave(fname_);
+    vector_valid_ = false;
 }
 
 std::string MessageBank::getNextID()  {
@@ -384,6 +423,7 @@ std::string MessageBank::getNextID()  {
                          vit_ != proclamations_.messages().end(); ++vit_) {
         if (stoi((*vit_).ID()) > tempID) { tempID = stoi((*vit_).ID());}
     }
+    vector_valid_ = false;
     return std::to_string(tempID + 1);
 }
 
@@ -391,9 +431,11 @@ bool MessageBank::CheckID (std::string mid) {
     for (vit_ = proclamations_.messages().begin();
                          vit_ != proclamations_.messages().end(); ++vit_) {
         if (mid == (*vit_).ID()){
+            vector_valid_ = true;
             return true;
         }
     }
+    vector_valid_ = false;
     return false;
 }
 
@@ -402,35 +444,44 @@ bool MessageBank::getByDate (int month, int day){
                          vit_ != proclamations_.messages().end(); ++vit_) {
         if ((month == (*vit_).month()) && (day == (*vit_).day())){
             return true;
+            vector_valid_ = true;
         }
     }
+    vector_valid_ = false;
     return false;
 }
 
 bool MessageBank::getByDateNext (int month, int day){
     for (++vit_ ; vit_ != proclamations_.messages().end(); ++vit_) {
         if ((month == (*vit_).month()) && (day == (*vit_).day())){
+            vector_valid_ = true;
             return true;
         }
     }
+    vector_valid_ = false;
     return false;
 }
 
 bool MessageBank::getAllStart(){
     if (!proclamations_.empty()) {
         vit_ = proclamations_.messages().begin();
+        vector_valid_ = true;
         return true;
     }
+    vector_valid_ = false;
     return false;
 }
 
 bool MessageBank::getAllNext(){
+    if (! vector_valid_) {return false;}
     for (++vit_ ; vit_ != proclamations_.messages().end(); ++vit_) {
+        vector_valid_ = true;
         return true;
     }
     #ifdef DEBUG
         std::cout << "getAllNext, returning FALSE "  << std::endl;
     #endif
+    vector_valid_ = false;
     return false;
 }
 
@@ -452,10 +503,17 @@ void MessageBank::resequence() {
     proclamations_.JsonReseq(fname_);
     proclamations_.clear();
     proclamations_.JsonLoad(fname_);
+    vector_valid_ = false;
 }
 
 void MessageBank::reload() {
     proclamations_.clear();
     proclamations_.JsonLoad(fname_);
+    vector_valid_ = false;
+}
+
+bool MessageBank::changed() {
+    return (proclamations_.changed(fname_));
+    vector_valid_ = false;
 }
 
