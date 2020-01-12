@@ -108,6 +108,19 @@ void speak(std::string say){
     digitalWrite(AMP_ENABLE, LOW);
 }
 
+std::string getDay()
+{
+    time_t rawtime;
+    struct tm * timeinfo;
+    char buffer[12];
+
+    time (&rawtime);
+    timeinfo = localtime (&rawtime);
+    strftime (buffer,12,"%A",timeinfo);
+    return sconvert(buffer, 12);
+}
+
+
 /**
  *
  *  lightShow()
@@ -188,10 +201,27 @@ float checkFan(float average_temp){
  *
  *   Speech routines
  *
+ *   returns a message based on the following rules:
+ *   1st - if there are messages specific for the day (type 1) those messages
+ *     will be returned with certainty.  If there are several for a day, the
+ *     they will be returned from the highest ID to the lowest.  This will
+ *     only happen at the beginning of the day, or on a reboot.
+ *   2nd - messages will be returned based on random numbers, choosing from
+ *     type 1 (special day), type 2 (specific day each year), and then
+ *     type 3 (any day).  Within each group, a messages is chosen using
+ *     a 2nd random number.  
+ *
  ****************************************************************************/
  
-std::string getProcMsg(){
+std::string getProcMsg(int &type1count){
 //    std::default_random_engine lgen;
+    if (type1count > 0) {   //  if there exists a message for today which
+                            //  has not been returned.
+        int msgnum = type1count;
+        type1count--;
+        return mbank.getNthEntry(MESSAGE_TYPE_1, msgnum);
+    }
+    // on to the random groups
     std::uniform_int_distribution<int> typeOneDist(0,4);
     if ((mbank.type1count() > 0) && (typeOneDist(lgen) == 2)){
         if (mbank.type1count() == 1){
@@ -249,9 +279,9 @@ std::string getProcMsg(){
  **/
 #define getSpeakTime(msg)  ((msg.length() + 12)/18)
 
-void tellTime(){
+void tellTime(int &type1count){
     int const timeSpeakBase = 3;  // light show iterations to speak time with no message.
-    std::string ttmessage = getProcMsg();
+    std::string ttmessage = getProcMsg(type1count);
     int lightShowTime = timeSpeakBase + getSpeakTime(ttmessage);
     std::thread first (lightShow, lightShowTime);
     time_t rawtime;
@@ -372,6 +402,11 @@ void tellWeather(){
     }
 }
 
+/**
+ *
+ *  tellDailyQuote - retrieve and speak the daily quote.
+ *
+ **/
 void tellDailyQuote(){
     if (internet()){
         int const quoteSpeakBase = 2;  // light show iterations to speak quote with no message.
@@ -421,6 +456,12 @@ void tellDailyQuote(){
     }
 }
 
+/**
+ *
+ *  tellOrigin - explain how the Cordie bot began.
+ *
+ **/
+
 void tellOrigin(){
     int const lightShowTime = 7;
     std::string const myStory = "I am Cordeebot.<break strength='strong' />"
@@ -434,6 +475,13 @@ void tellOrigin(){
     first.join();
 }
 
+/**
+ *
+ *  tellInternalTemp - give the value of the temperature sensor.  This is really
+ *  intended to be a diagnostic tool.
+ *
+ **/
+
 void tellInternalTemp(float current_temp){
     int const lightShowTime = 2;
     std::string my_temp = "My internal temperature is " +
@@ -446,13 +494,33 @@ void tellInternalTemp(float current_temp){
     first.join();
 }
 
+/**
+ *
+ *  tellEasterEgg - this will test the curiosity of the user.
+ *
+ **/
+
 void tellEasterEgg(){
     int const lightShowTime = 2;
     #ifdef DEBUG
         std::cout << "Easter egg" << std::endl;
     #endif
     std::thread first (lightShow, lightShowTime);
-    speak("you found an easteregg<break time='1s' />good job.");
+    speak("you found an easter egg<break time='1s' />good job.");
+    first.join();
+}
+
+/**
+ *
+ *  repeatLast - say the last message spoken.
+ *
+ **/
+void repeatLast()
+{
+    std::string dup_message = mbank.content();
+    int lightShowTime = getSpeakTime(dup_message);
+    std::thread first (lightShow, lightShowTime);
+    speak(dup_message);
     first.join();
 }
 
@@ -512,7 +580,7 @@ int main()
     init();
     
     int counter;
-    int file_check_counter = 0;
+    int periodic_counter = 0;
     float internal_temp;
     bool internetPresent = internet();
     #ifdef DEBUG
@@ -520,6 +588,11 @@ int main()
     #endif
     double touchButtonGap = 0.6;
     countButton button(SWITCH, touchButtonGap);		// Setup the switch
+    int type1count = mbank.type1count();
+    std:string current_day = getDay();
+    #ifdef DEBUG
+        std::cout << "Today is:  " << current_day << std::endl;
+    #endif
 	    
     while(1) {
         counter = button.read();
@@ -530,13 +603,16 @@ int main()
                 std::cout << "button:  " << counter << std::endl;
             #endif
             switch (counter) {
-                case 1: {   tellTime();
+                case 1: {   tellTime(type1count);
                             break;
                         }
                 case 2: {   tellWeather();
                             break;
                         }
                 case 3: {   tellDailyQuote();
+                            break;
+                        }
+                case 4: {   repeatLast();
                             break;
                         }
                 case 8: {   tellOrigin();
@@ -556,15 +632,22 @@ int main()
             }
         }
         internal_temp = checkFan(internal_temp);
-        ++file_check_counter;
-        if (file_check_counter > 300){  // check once a minute (with 200ms sleep)
-            if (mbank.changed()){
+        ++periodic_counter;
+        if (periodic_counter > 300){  // check once a minute (with 200ms sleep)
+            if (mbank.changed())  // if proclamations file has changed, reload it.
+            {
                 mbank.reload();
                 #ifdef DEBUG
                     std::cout << "reloading messages" << std::endl;
                 #endif
              }
-             file_check_counter = 0;
+             std:string new_day = getDay();
+             if (current_day.compare(new_day) != 0)  // if day has changed, reset type1count
+             {
+                current_day = new_day;
+                type1count = mbank.type1count();
+             }
+             periodic_counter = 0;
         }
     }
     return 0;
