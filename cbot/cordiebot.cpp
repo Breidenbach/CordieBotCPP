@@ -108,19 +108,6 @@ void speak(std::string say){
     digitalWrite(AMP_ENABLE, LOW);
 }
 
-std::string getDay()
-{
-    time_t rawtime;
-    struct tm * timeinfo;
-    char buffer[12];
-
-    time (&rawtime);
-    timeinfo = localtime (&rawtime);
-    strftime (buffer,12,"%A",timeinfo);
-    return sconvert(buffer, 12);
-}
-
-
 /**
  *
  *  lightShow()
@@ -163,6 +150,18 @@ bool internet(){
     } else {
         return 1;
     }
+}
+
+/**
+ *  getDay -- used to get the current day (in several places)
+ *
+ **/
+ 
+int getDay()
+{
+    time_t t = time(NULL);
+    tm* timePtr = localtime(&t);
+    return timePtr->tm_mday;
 }
 
 /**
@@ -215,6 +214,9 @@ float checkFan(float average_temp){
  
 std::string getProcMsg(int &type1count){
 //    std::default_random_engine lgen;
+    #ifdef DEBUG
+        std::cout << "type1count: " << type1count << std::endl;
+    #endif
     if (type1count > 0) {   //  if there exists a message for today which
                             //  has not been returned.
         int msgnum = type1count;
@@ -257,9 +259,6 @@ std::string getProcMsg(int &type1count){
         {
             std::uniform_int_distribution<int> randMsg(1,mbank.type3count());
             int typeThreeChoice = randMsg(lgen);
-            #ifdef DEBUG
-                std::cout << "typeThreeChoice: " << typeThreeChoice << std::endl;
-            #endif
             return mbank.getNthEntry(MESSAGE_TYPE_3, typeThreeChoice);
         }
     }
@@ -282,6 +281,9 @@ std::string getProcMsg(int &type1count){
 void tellTime(int &type1count){
     int const timeSpeakBase = 3;  // light show iterations to speak time with no message.
     std::string ttmessage = getProcMsg(type1count);
+    #ifdef DEBUG
+        std::cout << "time message: " << ttmessage << std::endl;
+    #endif
     int lightShowTime = timeSpeakBase + getSpeakTime(ttmessage);
     std::thread first (lightShow, lightShowTime);
     time_t rawtime;
@@ -533,9 +535,9 @@ void repeatLast()
 void set_mbank_counts() {
 	time_t t = time(NULL);
 	tm* timePtr = localtime(&t);
-    mbank.setCounts(timePtr->tm_year+1900,timePtr->tm_mon,timePtr->tm_mday);
+    mbank.setCounts(timePtr->tm_year+1900,timePtr->tm_mon+1,timePtr->tm_mday);
     #ifdef DEBUG
-        std::cout << "Today = " << timePtr->tm_mon << "/" << timePtr->tm_mday <<
+        std::cout << "Today = " << timePtr->tm_mon+1 << "/" << timePtr->tm_mday <<
                              "/" << timePtr->tm_year+1900 << std::endl;
         std::cout << "Today type 1 " << mbank.type1count() << std::endl;
         std::cout << "Today type 2 " << mbank.type2count() << std::endl;
@@ -589,7 +591,7 @@ int main()
     double touchButtonGap = 0.6;
     countButton button(SWITCH, touchButtonGap);		// Setup the switch
     int type1count = mbank.type1count();
-    std:string current_day = getDay();
+    int current_day = getDay();
     #ifdef DEBUG
         std::cout << "Today is:  " << current_day << std::endl;
     #endif
@@ -637,17 +639,22 @@ int main()
             if (mbank.changed())  // if proclamations file has changed, reload it.
             {
                 mbank.reload();
+                set_mbank_counts();
                 #ifdef DEBUG
                     std::cout << "reloading messages" << std::endl;
                 #endif
-             }
-             std:string new_day = getDay();
-             if (current_day.compare(new_day) != 0)  // if day has changed, reset type1count
-             {
+            }
+            int new_day = getDay();
+            if (current_day != new_day)  // if day has changed, reset type1count
+            {
                 current_day = new_day;
                 type1count = mbank.type1count();
-             }
-             periodic_counter = 0;
+                set_mbank_counts();
+                #ifdef DEBUG
+                    std::cout << "it is a new day:  " << current_day << std::endl;
+                #endif
+            }
+            periodic_counter = 0;
         }
     }
     return 0;
