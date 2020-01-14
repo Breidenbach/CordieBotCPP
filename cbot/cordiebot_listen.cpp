@@ -68,6 +68,7 @@ int main()
     #ifdef DEBUG
         std::cout << "input message count:  " << mbank.count() << std::endl;
     #endif
+    action = 0;   // preset action to do nothing.
     try {
       for (;;) {
         enum pubnub_res res;
