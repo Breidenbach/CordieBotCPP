@@ -42,6 +42,7 @@ CBOTSOURCEFILES = ../lib/wiringPiMCP3002.cpp \
                   ../lib/wiringPiMCP3002.h \
                   ../lib/wiringPiTLC59711.cpp \
                   ../lib/wiringPiTLC59711.h \
+                  ../lib/GPIOtoWiringPi.h \
                   ../lib/cbotLights.cpp \
                   ../lib/cbotLights.h \
                   ../lib/countButton.cpp \
@@ -142,8 +143,8 @@ endif
 
 CBLIBS=-lcurl -lpthread -lwiringPi
 
-#CFLAGS =-g -I .. -I . \  # when using debugger
-CFLAGS =   -I .. -I . \
+#CFLAGS =-g -O0 -I .. -I . \  # when using debugger
+CFLAGS =  -I .. -I . \
                  -I ../c-core \
                  -I ../c-core/cpp \
                  -I ../c-core/core \
