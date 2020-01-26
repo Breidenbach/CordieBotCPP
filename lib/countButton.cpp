@@ -39,14 +39,13 @@ int countButton::read(){
         return 0;
     }
     state_ = COUNTING_HIGH; 
-    buttonCount_ = 1;
     gettimeofday(&tv_, &tz_);
     timerStart_  = getSeconds();
     #ifdef DEBUG
         std::cout << "after if:  " << (getSeconds() - timerStart_) << std::endl; 
-        std::cout << "state: " << state_ << std::endl;
+        std::cout << "state: " << state_ << ", " << timerStart_ << std::endl;
     #endif
-    
+    buttonCount_ = 1;
     while ((getSeconds() - timerStart_) < buttonGap_ ) {
         #ifdef DEBUG
             std::cout << "first:  " << (getSeconds() - timerStart_) << std::endl; 
@@ -56,7 +55,7 @@ int countButton::read(){
             #ifdef DEBUG
                 std::cout << "high:  " << (getSeconds() - timerStart_) << std::endl; 
             #endif
-            usleep(100*1000);
+            usleep(50*1000);
             if (digitalRead(pin_) == 0){
                 state_ = COUNTING_LOW;
             }
@@ -64,6 +63,9 @@ int countButton::read(){
                 buttonCount_ = 255;
                 break;
             }
+        }
+        if ((getSeconds() - timerStart_) < (buttonGap_ / 4) ) {
+            buttonCount_ = 0;
         }
         timerStart_ = getSeconds();
         while ((state_ == COUNTING_LOW) &&
