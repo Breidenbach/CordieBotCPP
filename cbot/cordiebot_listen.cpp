@@ -9,7 +9,7 @@
 #include "messages.h"
 #include <fstream>
 
-#define DEBUG
+//#define DEBUG
 
 /*
    pubnubprocess.cpp - created from subscribe_publish_callback_sample.cpp
@@ -45,8 +45,23 @@ std::string adjustApostropies(std::string str){
     return work;                          
 }
 
+bool internet(){
+    int test_result = system("ping -c 1 8.8.8.8");
+    #ifdef DEBUG
+        std::cout << "listen ping return: " << test_result << std::endl;
+    #endif
+    return (test_result == 0);
+}
+
 int main()
 {
+    while (! internet())  // wait for internet to connect
+    {
+        usleep(500*1000);  // delay 1/2 second
+    }
+    #ifdef DEBUG
+        std::cout << "Starting cordiebot_listen  1/24/2020  14:20" << std::endl;
+    #endif
     std::ifstream keyfile("keys.js");
     std::string pubkey, subkey;
     std::string line;
@@ -68,25 +83,24 @@ int main()
     #ifdef DEBUG
         std::cout << "input message count:  " << mbank.count() << std::endl;
     #endif
-    action = 0;   // preset action to do nothing.
     try {
       for (;;) {
         enum pubnub_res res;
-            char const *chan = "cordiebot";
-            pubnub::context pb(pubkey, subkey);
-            pubnub::context pb_2(pubkey, subkey);
-            JSONCPP_STRING json_err;
+        char const *chan = "cordiebot";
+        pubnub::context pb(pubkey, subkey);
+        pubnub::context pb_2(pubkey, subkey);
+        JSONCPP_STRING json_err;
 
-            std::string ID;
-            int action;
-            int type;
-            int day;
-            int month;
-            int year;
-            std::string content;
-            
-            std::string sent_message;
-            std::string msg;
+        std::string ID;
+        int action;
+        int type;
+        int day;
+        int month;
+        int year;
+        std::string content;
+        
+        std::string sent_message;
+        std::string msg;
 
         #ifdef DEBUG
             std::cout << "--------------------------" << std::endl <<
@@ -159,7 +173,7 @@ int main()
             std::cout << "Await subscribe" << std::endl;
         #endif
         res = futres.end_await();
-        action = 0;
+        action = 0;   //  pre-set to avoid using uninitialized variable
         if (PNR_OK == res) {
             #ifdef DEBUG
                 std::cout << "Subscribed! Got messages:";
@@ -232,7 +246,6 @@ int main()
                             break;
                         case DELETE_ENTRY:
                             if (mbank.erase(ID)) {
-                                reply_string = adjustApostropies(writer.write(root));
                                 reply_root["response"] = "Message deleted.";
                             } else {
                                 reply_root["response"] = "Message " + ID + " not found.";
@@ -319,8 +332,17 @@ int main()
                     }  //  switch(action)
                     message_reply = writer.write(reply_root);
                     message_reply.pop_back();  //  remove \n from end of string.
+                    #ifdef DEBUG
+                        std::cout << "msg processed " << message_reply << std::endl;
+                    #endif
                 }  //  if (!msg.empty() && (msg != sent_message))
+                #ifdef DEBUG
+                    std::cout << "after if (!msg.empty() && (msg != sent_message))" << std::endl;
+                #endif
             } while (!msg.empty());
+            #ifdef DEBUG
+                std::cout << "after while (!msg.empty())" << std::endl;
+            #endif
         }
         #ifdef DEBUG
             else {
