@@ -8,12 +8,12 @@
  *   
  **/
  
-#include <iostream>
 #include <jsoncpp/json/json.h>
 #include <memory>
 #include <string>
 #include <algorithm>
 #include "messages.h"
+#include <iostream>
 #include <fstream>
 #include "countButton.h"
 #include "GPIOtoWiringPi.h"
@@ -26,15 +26,20 @@
 #include <curl/curl.h>
 #include <bits/stdc++.h> 
 #include <curl/curl.h>
+#include <unistd.h>
+#include <sys/sendfile.h>  // sendfile
+#include <fcntl.h>         // open
+#include <unistd.h>        // close
+#include <sys/stat.h>      // fstat
+#include <sys/types.h>     // fstat
 
-
-#define DEBUG
+//#define DEBUG
 
 //  digital I/O constants
 #define AMP_ENABLE GPIO21 
 #define HIGH 1
 #define LOW 0
-#define FAN GPIO24 
+#define FAN GPIO17 
 #define SWITCH GPIO25 
 
 //  light constants
@@ -53,12 +58,12 @@
 // temperature constants
 #define TEMPERATURE_CHIP_SELECT 1
 #define MCP3002_CHANNEL 0
+#define FAN_LIMIT 100.0
 
-//  mbank and lgen are used many places
+//  mbank, lgen, and tempSensor are used many places
 MessageBank mbank("proclamations.txt");
 std::default_random_engine lgen;
 wiringPiMCP3002 tempSensor(TEMPERATURE_CHIP_SELECT, MCP3002_CHANNEL);
-
 
 /**
  *
@@ -92,6 +97,17 @@ std::string replaceFirst(
     return s.replace(pos, toReplace.length(), replaceWith);
 }
 
+/** 
+ *   convert string to hex for debugging
+ **/
+#ifdef DEBUG
+    inline unsigned int to_uint(char ch)
+    {
+        // EDIT: multi-cast fix as per David Hammen's comment
+        return static_cast<unsigned>(static_cast<unsigned char>(ch));
+    }
+#endif
+
 /**
  *  format a string with the speech prelude and postlude and pass it to the system
  *  to be spoken.
@@ -102,8 +118,23 @@ void speak(std::string say){
                                      //  speech events.  Might have been a Python issue.
     const std::string prelude ("aoss swift \"<prosody rate='-0.3'> ");
     const std::string postlude ("\"");
-    std::string totality = prelude + say + postlude;
+    std::string totality = prelude;
+    totality.append(say);
+    totality.append(postlude);
+    #ifdef DEBUG
+        std::cout << totality << std::endl;
+        std::cout << "length of string to speak:  " << totality.length() << std::endl;
+        std::cout << std::hex;
+        for (char ch : totality)
+        {
+            std::cout << "0x" << to_uint(ch) << ' '; 
+        }
+        std::cout << "] end of totality" << std::endl;        
+    #endif
     const char *speech = totality.c_str();
+    #ifdef DEBUG
+        std::cout << "speak: [" << totality.c_str() << "] " << std::endl;
+    #endif
     system(speech);
     digitalWrite(AMP_ENABLE, LOW);
 }
@@ -140,16 +171,22 @@ void lightShow(int iterations){
  *   internet tests if the internet can be accessed.
  *
  **/
-bool internet(){
-    #ifdef DEBUG
-        std::cout << "ping return: " << system("ping -c 1 8.8.8.8") << std::endl;
-    #endif
-    if (system("ping -c 1 8.8.8.8") != 0){
-        speak("I don't appear to be connected to a why fi network.");
-        return 0;
-    } else {
-        return 1;
+bool internet(int startcount){
+    int test_result = 0;
+    while (startcount > 0){
+        test_result = system("ping -c 1 8.8.8.8");
+        #ifdef DEBUG
+            std::cout << "ping return: " << test_result << " cnt: "
+                                                 << startcount << std::endl;
+        #endif
+        if (test_result == 0) { return true;}
+        startcount--;
+        usleep(1000*1000);  // delay 1 second
     }
+    speak("I don't appear to be connected to a why fi network.");
+    speak("Check if your why fi is running. Check if anyone changed the "
+                "password.  Otherwise, grampa might be able to help.");
+    return 0;
 }
 
 /**
@@ -177,24 +214,149 @@ return size * nmemb;
 
 /**
  *
- *   checkFan gets the current inside temperature, computes a running average, and
+ *   checkFan gets the current inside temperature, updates a running average, and
  *   if the temperature is high, turns on the fan.
  *
  **/
-float checkFan(float average_temp){
+void checkFan(float &average_temp){
     float volts = tempSensor.getVolts();
     float sample_temp = (volts * 190.8) - 68.8;
-    float new_average_temp = average_temp * 0.95 + sample_temp * 0.05;
-    if (new_average_temp > 100.0){
+    average_temp = average_temp * 0.95 + sample_temp * 0.05;
+    if (average_temp > FAN_LIMIT){
         digitalWrite(FAN, HIGH);  // Turn on fan
     }
     else
     {
         digitalWrite(FAN, LOW);
     }
-    return new_average_temp;
 }
 
+/**
+ *
+ *  Self update routines
+ *
+ *  Check if USB files present.  If it is, /proc/mounts will contain the string
+ *   "CORDIEBOT"
+ *
+ */
+ 
+std::string findCordiebotUSB()
+{
+    std::string line;
+    std::ifstream USBfile ("/proc/mounts");
+    if (USBfile.is_open())
+    {
+        while ( getline (USBfile,line) )
+        {
+            if (line.find("CORDIEBOT") != std::string::npos) {
+                return line;
+            }
+        }
+    USBfile.close();
+    }
+    return "";
+}
+
+void copyFile(const char* infile, const char* outfile){
+    int source = open(infile, O_RDONLY, 0);
+    int dest = open(outfile, O_WRONLY | O_CREAT, 0644);
+
+    // struct required, rationale: function stat() exists also
+    struct stat stat_source;
+    fstat(source, &stat_source);
+
+    sendfile(dest, source, 0, stat_source.st_size);
+
+    close(source);
+    close(dest);
+}
+
+/**
+ * check for wpa_supplicant.conf file repacement
+ *   If file is present, it is moved to /etc/wpa_supplicant/ and can be used
+ *   to find a new wifi network or change the password of an existing network.
+ *   Note that the system must be restarted to use the new wpa_supplicant.conf 
+ *   file.
+ *
+ **/
+
+void checkForConf() {
+
+    FILE * stream;
+    const int max_buffer = 256;
+    char buffer[max_buffer];
+    bool shutdown = false;
+    bool copy_bot = false;
+
+    stream = popen("ls /media/pi/CORDIEBOT 2>&1", "r");
+    if (stream) {
+        while (!feof(stream))
+        {
+            if (fgets(buffer, max_buffer, stream) != NULL)
+            {
+                std::size_t found;
+                std::string data;
+                std::string match_string = "wpa_supplicant.conf\n";
+                data.append(buffer);
+                std::cout << "cbot line  " << data << std::endl;
+            
+                found = data.find(match_string);
+                if (found!=std::string::npos)
+                {
+                    #ifdef DEBUG
+                        std::cout << "got wpa_supplicant.conf: " << std::endl;
+                    #endif
+                    speak("I have found a new why fi name and password file.  "
+                                "I will start using that file after I reboot.");
+                    system("sudo /home/pi/CordieBot2/cp_wpa_conf.sh /media/pi/CORDIEBOT");
+                    shutdown = true;
+                }
+                found = data.find("cp_cordiebot.sh");
+                if (found!=std::string::npos)
+                {
+                    #ifdef DEBUG
+                        std::cout << "cp_cordiebot.sh found" << std::endl;
+                    #endif
+
+                    copyFile("/media/pi/CORDIEBOT/cp_cordiebot.sh","cp_cordiebot.sh");
+                                        
+                    system("chmod a+x /home/pi/CordieBot2/cp_cordiebot.sh");
+                    shutdown = true;
+                    copy_bot = true;
+                } else {
+                    found = data.find("cordiebot");
+                    if (found!=std::string::npos)
+                    {
+                        #ifdef DEBUG
+                            std::cout << "at least one cordiebot executable found" << std::endl;
+                        #endif
+                        shutdown = true;
+                        copy_bot = true;
+                    }
+                }
+            }
+        }
+        pclose(stream);
+        if (copy_bot)
+        {
+            speak("I have found a new cordee bot file. "
+                            "I will start using that file after I reboot.");
+            system("/home/pi/CordieBot2/cp_cordiebot.sh /media/pi/CORDIEBOT");
+            system ("chmod a+x cp_cordiebot.sh");
+        }
+        if (shutdown) 
+        {
+            speak("Remove the USB stick now.");
+            usleep(5000*1000);
+            sync();
+            #ifdef DEBUG
+                std::cout << "reboot starts here " << std::endl;
+            #endif        
+            system("sudo shutdown -r now");
+        }
+    }
+
+}
 
 /****************************************************************************
  *
@@ -293,20 +455,33 @@ void tellTime(int &type1count){
     time (&rawtime);
     timeinfo = localtime (&rawtime);
 
-    strftime (buffer,80,"It is %I:%M %p, on  %A,  %B %e, %Y \0",timeinfo);
+    strftime (buffer,80,"It is %I:%M %p, on  %A,  %B %e, twenty %y \0",timeinfo);
     std::string time_str = sconvert(buffer, 80);
+    size_t zero_ndx = time_str.find('\0');
+    if (zero_ndx!=std::string::npos)
+    {
+        time_str.erase(zero_ndx);
+    }
     #ifdef DEBUG
         std::cout << time_str << std::endl;
         std::cout << "length of time_str:  " << time_str.length() << std::endl;
     #endif
-    std::string str = time_str + "<break time='1s' />" + ttmessage;
+    std::string str = "<break time='1s' />";
+    time_str.append(str);
+    time_str.append(ttmessage);
 
     #ifdef DEBUG
-        std::cout << str << std::endl;
-        std::cout << "length of string to speak:  " << str.length() << std::endl;
+        std::cout << time_str << std::endl;
+        std::cout << "length of string to speak:  " << time_str.length() << std::endl;
+        std::cout << std::hex;
+        for (char ch : time_str)
+        {
+            std::cout << "0x" << to_uint(ch) << ' '; 
+        }
+        std::cout << "] end of str" << std::endl;        
     #endif
 
-    speak(str);
+    speak(time_str);
     first.join();
 }
 
@@ -319,7 +494,7 @@ void tellTime(int &type1count){
  *
  **/
 void tellWeather(){
-    if (internet()){
+    if (internet(1)){
         #ifdef DEBUG
             std::cout << "In weather, internet OK" << std::endl;
         #endif
@@ -410,7 +585,7 @@ void tellWeather(){
  *
  **/
 void tellDailyQuote(){
-    if (internet()){
+    if (internet(1)){
         int const quoteSpeakBase = 2;  // light show iterations to speak quote with no message.
         #ifdef DEBUG
             std::cout << "In weather, internet OK" << std::endl;
@@ -559,7 +734,7 @@ void init()
     pinMode(AMP_ENABLE, OUTPUT);  // Amplifier is disabled between speech events.
     srand (time(NULL));   // random number seed to simulate random start
     pinMode(FAN, OUTPUT);
-
+    checkForConf();    // look for USB
     set_mbank_counts();
     
     signal(SIGUSR1, signal_handler);
@@ -574,19 +749,17 @@ void init()
 
 int main()
 {
-    #ifdef DEBUG
-        std::cout << "Starting CordieBot" << std::endl;
-    #endif
-    std::string intro = "I am cordeebot.";
+    std::cout << "Starting CordieBot 1/25/2020 11:00 " << std::endl;
+    std::string intro = "I am cordeebot 2.0";
     
     init();
     
     int counter;
     int periodic_counter = 0;
-    float internal_temp;
-    bool internetPresent = internet();
+    float internal_temp = 70.0;   // Initialize to reasonable starting point of 70 deg.
+    internet(10);
     #ifdef DEBUG
-        std::cout << "Internet present = " << internetPresent << std::endl;
+        std::cout << "Internet present = " << internet(1) << std::endl;
     #endif
     double touchButtonGap = 0.6;
     countButton button(SWITCH, touchButtonGap);		// Setup the switch
@@ -617,6 +790,9 @@ int main()
                 case 4: {   repeatLast();
                             break;
                         }
+                case 5: {   speak(intro);
+                            break;
+                        }
                 case 8: {   tellOrigin();
                             break;
                         }
@@ -626,6 +802,15 @@ int main()
                 case 17: {  tellEasterEgg();
                             break;                        
                         }
+                case 255:
+                        {
+                            speak("goodbye");
+                            sync();
+                            #ifdef DEBUG
+                                std::cout << "reboot starts here " << std::endl;
+                            #endif        
+                            system("sudo shutdown -r now");
+                        }
                 default: {
                             #ifdef DEBUG
                                 std::cout << "Invalid option selected." << std::endl;
@@ -633,7 +818,7 @@ int main()
                         }
             }
         }
-        internal_temp = checkFan(internal_temp);
+        checkFan(internal_temp);
         ++periodic_counter;
         if (periodic_counter > 300){  // check once a minute (with 200ms sleep)
             if (mbank.changed())  // if proclamations file has changed, reload it.
