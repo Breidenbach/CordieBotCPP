@@ -81,8 +81,8 @@ void wiringPiTLC59711::setPWM(uint8_t chan, uint16_t pwm) {
 
 
 void wiringPiTLC59711::setLED(uint8_t lednum, uint16_t r, uint16_t g, uint16_t b) {
-  setPWM(lednum*3, r);
+  setPWM(lednum*3, b);
   setPWM(lednum*3+1, g);
-  setPWM(lednum*3+2, b);
+  setPWM(lednum*3+2, r);
 }
 
