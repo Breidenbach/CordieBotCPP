@@ -809,7 +809,7 @@ int main()
                             #ifdef DEBUG
                                 std::cout << "reboot starts here " << std::endl;
                             #endif        
-                            system("sudo shutdown -r now");
+                            system("sudo shutdown now");
                         }
                 default: {
                             #ifdef DEBUG
