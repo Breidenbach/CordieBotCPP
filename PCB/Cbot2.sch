@@ -522,9 +522,9 @@ F 3 "" H 8650 2050 50  0001 C CNN
 	1    8650 2050
 	1    0    0    -1  
 $EndComp
-Text Notes 9700 2900 0    50   ~ 0
+Text Notes 9700 2450 0    50   ~ 0
 Red
-Text Notes 6000 4600 0    50   ~ 0
+Text Notes 6000 3850 0    50   ~ 0
 Red
 Text Label 6350 4100 0    50   ~ 0
 DI
@@ -608,8 +608,6 @@ F 3 "" H 2500 7700 60  0001 C CNN
 $EndComp
 Text Notes 1150 6800 0    118  ~ 24
 Mounting Holes
-Text Label 3200 3050 2    60   ~ 0
-GND
 $Comp
 L Connector_Generic:Conn_02x10_Top_Bottom J10
 U 1 1 5E0000D2
@@ -721,4 +719,30 @@ Wire Wire Line
 	8750 900  9150 900 
 Text Notes 7450 7850 0    50   ~ 0
 January 26, 2020
+Text Notes 9700 800  0    50   ~ 0
+Red
+Text Notes 9450 5800 0    50   ~ 0
+Red
+Text Notes 9450 5100 0    50   ~ 0
+Red
+Text Notes 950  1250 0    50   ~ 0
+Red
+Text Notes 950  1700 0    50   ~ 0
+Red
+Text Notes 9950 6100 0    50   ~ 0
+Pins
+Text Notes 9950 5250 0    50   ~ 0
+Pins
+Text Notes 10050 850  0    50   ~ 0
+Pins
+Text Notes 5750 4300 0    50   ~ 0
+Pins
+Text Notes 750  1100 0    50   ~ 0
+Pins
+Text Notes 750  1550 0    50   ~ 0
+Pins
+Text Notes 9650 2900 0    50   ~ 0
+Socket
+Text Notes 9950 4550 0    50   ~ 0
+Socket
 $EndSCHEMATC
