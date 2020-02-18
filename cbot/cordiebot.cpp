@@ -51,7 +51,7 @@
 #define HEAD_LAMP 0
 #define BRAIN_LAMP 3
 // light ramp with ramp 64 & delay 30 lasts just under 2 seconds.
-#define RAMP 64
+#define RAMP 128
 #define LIGHT_DELAY 30
 #define MAX_COLOR 65535
 
@@ -141,15 +141,36 @@ void speak(std::string say){
 
 /**
  *
- *  lightShow()
+ *  lightShow(iterations)
  *
  *  Note that the head and brain lamps take iterations + 1 time since they are reset
  *  to zero after the for statement.
  *
+ *  setRandLight(r, g, b)
+ *
+ *  Set the color to random RGB values - randomly selecting one color, setting another 
+ *  color to the max value minus the first color, and setting the third to zero.
+ *
  **/
+ 
+void setRandLight(int &r, int &g, int &b){
+    int v[3] = {0, 0, 0};
+    int c1, c2;
+    std::uniform_int_distribution<int> ldist(0,MAX_COLOR);
+    std::uniform_int_distribution<int> lchoice1(0,2);
+    std::uniform_int_distribution<int> lchoice2(0,1);
+    c1 = lchoice1(lgen);
+    c2 = (c1 + lchoice2(lgen)) % 3;
+    v[c1] = ldist(lgen);
+    v[c2] = MAX_COLOR - v[c1];
+    r = v[0];
+    g = v[1];
+    b = v[2];
+}
+
 void lightShow(int iterations){
     std::uniform_int_distribution<int> ldist(0,MAX_COLOR);
-    
+    int HeadR, HeadG, HeadB, BrainR, BrainG, BrainB;
     cbotLights lights = cbotLights();
     lights.setIncrements(LEFT_EYE, BLINK_INCR, BLINK_DELAY);  
     lights.setIncrements(RIGHT_EYE, BLINK_INCR, BLINK_DELAY);
@@ -158,8 +179,10 @@ void lightShow(int iterations){
     lights.rampPair(LEFT_EYE, RIGHT_EYE, 0, MAX_COLOR / 2, MAX_COLOR,
                                          0, MAX_COLOR / 2, MAX_COLOR);
     for (int ndx = 0; ndx < iterations; ++ndx){
-        lights.rampPair(HEAD_LAMP, BRAIN_LAMP, ldist(lgen), ldist(lgen), ldist(lgen),
-                                            ldist(lgen), ldist(lgen), ldist(lgen));
+        setRandLight(HeadR, HeadG, HeadB);
+        setRandLight(BrainR, BrainG, BrainB);
+        lights.rampPair(HEAD_LAMP, BRAIN_LAMP, HeadR, HeadG, HeadB,
+                                            BrainR, BrainG, BrainB);
     }
     lights.rampPair(HEAD_LAMP, BRAIN_LAMP, 0, 0, 0, 0, 0, 0);
     lights.rampPair(LEFT_EYE, RIGHT_EYE, 0, 0, 0, 0, 0, 0);
@@ -413,7 +436,7 @@ std::string getProcMsg(int &type1count){
     #ifdef DEBUG
         std::cout << "typeThreeChance: " << typeThreeChance << std::endl;
     #endif
-    if ((mbank.type3count() > 0) && (typeThreeDist(lgen) == 1)){
+    if ((mbank.type3count() > 0) && (typeThreeChance == 1)){
         if (mbank.type3count() == 1){
             return mbank.getNthEntry(MESSAGE_TYPE_3, 1);
         }
@@ -734,7 +757,6 @@ void init()
     pinMode(AMP_ENABLE, OUTPUT);  // Amplifier is disabled between speech events.
     srand (time(NULL));   // random number seed to simulate random start
     pinMode(FAN, OUTPUT);
-    checkForConf();    // look for USB
     set_mbank_counts();
     
     signal(SIGUSR1, signal_handler);
@@ -749,7 +771,7 @@ void init()
 
 int main()
 {
-    std::cout << "Starting CordieBot 1/25/2020 11:00 " << std::endl;
+    std::cout << "Starting CordieBot 2/18/2020 13:45 " << std::endl;
     std::string intro = "I am cordeebot 2.0";
     
     init();
@@ -791,6 +813,9 @@ int main()
                             break;
                         }
                 case 5: {   speak(intro);
+                            break;
+                        }
+                case 6: {   checkForConf();    // look for USB
                             break;
                         }
                 case 8: {   tellOrigin();
