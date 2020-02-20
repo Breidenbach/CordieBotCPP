@@ -50,9 +50,9 @@
 #define BLINK_DELAY 20
 #define HEAD_LAMP 0
 #define BRAIN_LAMP 3
-// light ramp with ramp 64 & delay 30 lasts just under 2 seconds.
+// light ramp with ramp 128 & delay 18 lasts just under 3 seconds.
 #define RAMP 128
-#define LIGHT_DELAY 30
+#define LIGHT_DELAY 18
 #define MAX_COLOR 65535
 
 // temperature constants
@@ -310,9 +310,9 @@ void checkForConf() {
     char buffer[max_buffer];
     bool shutdown = false;
     bool copy_bot = false;
-
     stream = popen("ls /media/pi/CORDIEBOT 2>&1", "r");
-    if (stream) {
+    if (stream)
+    {
         while (!feof(stream))
         {
             if (fgets(buffer, max_buffer, stream) != NULL)
@@ -322,7 +322,7 @@ void checkForConf() {
                 std::string match_string = "wpa_supplicant.conf\n";
                 data.append(buffer);
                 std::cout << "cbot line  " << data << std::endl;
-            
+        
                 found = data.find(match_string);
                 if (found!=std::string::npos)
                 {
@@ -331,7 +331,8 @@ void checkForConf() {
                     #endif
                     speak("I have found a new why fi name and password file.  "
                                 "I will start using that file after I reboot.");
-                    system("sudo /home/pi/CordieBot2/cp_wpa_conf.sh /media/pi/CORDIEBOT");
+                    system("sudo /home/pi/CordieBot2/cp_wpa_conf.sh"
+                                                        " /media/pi/CORDIEBOT");
                     shutdown = true;
                 }
                 found = data.find("cp_cordiebot.sh");
@@ -342,7 +343,7 @@ void checkForConf() {
                     #endif
 
                     copyFile("/media/pi/CORDIEBOT/cp_cordiebot.sh","cp_cordiebot.sh");
-                                        
+                                    
                     system("chmod a+x /home/pi/CordieBot2/cp_cordiebot.sh");
                     shutdown = true;
                     copy_bot = true;
@@ -351,7 +352,8 @@ void checkForConf() {
                     if (found!=std::string::npos)
                     {
                         #ifdef DEBUG
-                            std::cout << "at least one cordiebot executable found" << std::endl;
+                            std::cout << "at least one cordiebot"
+                                                    " executable found" << std::endl;
                         #endif
                         shutdown = true;
                         copy_bot = true;
@@ -378,7 +380,11 @@ void checkForConf() {
             system("sudo shutdown -r now");
         }
     }
-
+    if ( ! copy_bot && ! shutdown)
+    {
+        speak("You asked me to check for updates, but either there are no updates"
+                                        " or there is no memory stick present. ");
+    }
 }
 
 /****************************************************************************
@@ -456,12 +462,12 @@ std::string getProcMsg(int &type1count){
  *
  *  calculates the number of light show iterations to speak a string based on the
  *  empirical analysis that a single character takes about 0.11 seconds and that
- *  the light show iterations are about 2 seconds long.  Therefore, 18 characters
+ *  the light show iterations are about 3 seconds long.  Therefore, 36 characters
  *  should take just one light show iteration.  So the division will round up and
  *  and a bit high, we add 12 to the message length.
  *
  **/
-#define getSpeakTime(msg)  ((msg.length() + 12)/18)
+#define getSpeakTime(msg)  ((msg.length() + 12)/27)
 
 void tellTime(int &type1count){
     int const timeSpeakBase = 3;  // light show iterations to speak time with no message.
@@ -522,14 +528,13 @@ void tellWeather(){
             std::cout << "In weather, internet OK" << std::endl;
         #endif
         CURL *curl;
-        CURLcode res;
         std::string readBuffer;
         curl = curl_easy_init();
         if(curl) {
             curl_easy_setopt(curl, CURLOPT_URL, "https://geoip-db.com/json/");
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            res = curl_easy_perform(curl);
+            curl_easy_perform(curl);
             curl_easy_cleanup(curl);
             #ifdef DEBUG
                 std::cout << readBuffer << std::endl;
@@ -539,7 +544,9 @@ void tellWeather(){
             Json::CharReaderBuilder builder;
             const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
             int rawLength = readBuffer.length();
-            if (!reader->parse(readBuffer.c_str(), readBuffer.c_str() + rawLength, &root, &json_err)) {
+            if (!reader->parse(readBuffer.c_str(), readBuffer.c_str() + rawLength,
+                                                                     &root, &json_err))
+            {
                 #ifdef DEBUG
                     std::cout << "json error" << std::endl;
                 #endif
@@ -562,17 +569,19 @@ void tellWeather(){
                 curl_easy_setopt(curl, CURLOPT_URL, getWeatherChar);
                 curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
                 curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer2);
-                res = curl_easy_perform(curl);  //  retrieve does not work if this
+                curl_easy_perform(curl);  //  retrieve does not work if this
                                                 //  statement is removed.
                 curl_easy_cleanup(curl);
                 std::cout << readBuffer2 << std::endl;
                 int rawLength2 = readBuffer2.length();
-                if (!reader->parse(readBuffer2.c_str(), readBuffer2.c_str() + rawLength2, &root, &json_err)) {
+                if (!reader->parse(readBuffer2.c_str(), readBuffer2.c_str() +
+                                                     rawLength2, &root, &json_err))
+                {
                     #ifdef DEBUG
                         std::cout << "json error" << std::endl;
                     #endif
                 } else {
-                    std::thread first (lightShow, 3);
+                    std::thread first (lightShow, 2);
                     int truncTemp = int(root["main"]["temp"].asDouble() + 0.5);
                     std::string temperature;
                     if ((truncTemp == 1)  || (truncTemp == -1)) {
@@ -609,19 +618,20 @@ void tellWeather(){
  **/
 void tellDailyQuote(){
     if (internet(1)){
-        int const quoteSpeakBase = 2;  // light show iterations to speak quote with no message.
+        int const quoteSpeakBase = 1;  // light show iterations to speak quote
+                                        // with no message.
         #ifdef DEBUG
             std::cout << "In weather, internet OK" << std::endl;
         #endif
         CURL *curl;
-        CURLcode res;
         std::string readBuffer;
         curl = curl_easy_init();
         if(curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, "https://www.brainyquote.com/link/quotebr.rss");
+            curl_easy_setopt(curl, CURLOPT_URL,
+                                         "https://www.brainyquote.com/link/quotebr.rss");
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            res = curl_easy_perform(curl);
+            curl_easy_perform(curl);
             curl_easy_cleanup(curl);
             #ifdef DEBUG
                 std::cout << readBuffer << std::endl;
@@ -630,13 +640,15 @@ void tellDailyQuote(){
             std::size_t len = readBuffer.find("</item>") - start;
             std::string item = readBuffer.substr(start, len);
             #ifdef DEBUG
-                std::cout << "item: " << item << ", " << start << ", " << len << std::endl;
+                std::cout << "item: " << item << ", " << start << ", " <<
+                                                                 len << std::endl;
             #endif
             start = item.find("<description>") + 14;
             len = item.find("</description>") - start - 1;
             std::string quote = item.substr(start, len);
             #ifdef DEBUG
-                std::cout << "quote: " << quote << ", " << start << ", " << len << std::endl;
+                std::cout << "quote: " << quote << ", " << start << ", " <<
+                                                                 len << std::endl;
             #endif
             start = item.find("<title>") + 7;  // I know, title for auther does not make
             len = item.find("</title>") - start;  // sense, however, it is correct.
@@ -663,7 +675,7 @@ void tellDailyQuote(){
  **/
 
 void tellOrigin(){
-    int const lightShowTime = 7;
+    int const lightShowTime = 5;
     std::string const myStory = "I am Cordeebot.<break strength='strong' />"
                                 "I was made by Grampa in 20 16 for Cordies 11th birthday."
                                 "<break strength='strong' />"
@@ -685,7 +697,7 @@ void tellOrigin(){
 void tellInternalTemp(float current_temp){
     int const lightShowTime = 2;
     std::string my_temp = "My internal temperature is " +
-                                            std::to_string(int(current_temp)) + " degrees.";
+                                        std::to_string(int(current_temp)) + " degrees.";
     #ifdef DEBUG
         std::cout << my_temp << std::endl;
     #endif
@@ -718,6 +730,11 @@ void tellEasterEgg(){
 void repeatLast()
 {
     std::string dup_message = mbank.content();
+    if (dup_message.length() <= 1)
+    {
+        dup_message = "You pressed 4 to repeat a message,"
+                                    " but no messages have been spoken yet.";
+    }
     int lightShowTime = getSpeakTime(dup_message);
     std::thread first (lightShow, lightShowTime);
     speak(dup_message);
@@ -743,13 +760,6 @@ void set_mbank_counts() {
     #endif
 }
 
-void signal_handler( int signal_num ){
-    #ifdef DEBUG
-        std::cout << "Received SIGUSR1, reloading messages." << std::endl;
-    #endif
-    mbank.reload();
-}
- 
 void init()
 {
     //   Initialize wiringPi
@@ -758,8 +768,9 @@ void init()
     srand (time(NULL));   // random number seed to simulate random start
     pinMode(FAN, OUTPUT);
     set_mbank_counts();
+    speak("  ");  // initialize aoss, without this the first speech request happens
+                // after a significant delay.
     
-    signal(SIGUSR1, signal_handler);
 }
 
 
@@ -771,7 +782,7 @@ void init()
 
 int main()
 {
-    std::cout << "Starting CordieBot 2/18/2020 13:45 " << std::endl;
+    std::cout << "Starting CordieBot 2/20/2020 11:10 " << std::endl;
     std::string intro = "I am cordeebot 2.0";
     
     init();
