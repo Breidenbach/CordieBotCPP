@@ -523,7 +523,7 @@ void tellTime(int &type1count){
  *
  **/
 void tellWeather(){
-    if (internet(1)){
+    if (internet(10)){
         #ifdef DEBUG
             std::cout << "In weather, internet OK" << std::endl;
         #endif
@@ -617,7 +617,7 @@ void tellWeather(){
  *
  **/
 void tellDailyQuote(){
-    if (internet(1)){
+    if (internet(10)){
         int const quoteSpeakBase = 1;  // light show iterations to speak quote
                                         // with no message.
         #ifdef DEBUG
@@ -768,6 +768,7 @@ void init()
     srand (time(NULL));   // random number seed to simulate random start
     pinMode(FAN, OUTPUT);
     set_mbank_counts();
+    lightShow(1);
     speak("  ");  // initialize aoss, without this the first speech request happens
                 // after a significant delay.
     
@@ -790,7 +791,7 @@ int main()
     int counter;
     int periodic_counter = 0;
     float internal_temp = 70.0;   // Initialize to reasonable starting point of 70 deg.
-    internet(10);
+    internet(60);
     #ifdef DEBUG
         std::cout << "Internet present = " << internet(1) << std::endl;
     #endif
