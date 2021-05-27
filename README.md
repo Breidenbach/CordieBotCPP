@@ -54,6 +54,7 @@ wiringPi is used to access the Pi hardware inputs and outputs.  aoss is used to 
 ### Support files:
   - createproclamationfile.py:  Used to create an initial list of statements for the CordieBot to recite.
   - keys.js:  container for the CordieBot PubNub keyes used for communication to the CordieBot.  This file is used in all the files used in the PubNub communications - the host computer HTML file and CordieBot's listen program.
+  - cordiebot.service.txt and cordiebot_listen.service.txt: These files, with the .txt extension removed, should be place in the /etc/systemd/system/ directory to start the CordieBot applications when the system is booted.
   
 ## PRINTED CIRCUIT BOARD
 
