@@ -1,0 +1,13 @@
+[Unit]
+Description=CordieBot Communication Service
+After=multi-user.target
+
+[Service]
+Type=idle
+WorkingDirectory=/home/pi/CordieBot2
+ExecStart=/home/pi/CordieBot2/cordiebot_listen
+StandardOutput=file:/home/pi/CordieBot2/cbot_l_debug.log
+StandardError=file:/home/pi/CordieBot2/cbot_l_error.log
+
+[Install]
+WantedBy=multi-user.target
