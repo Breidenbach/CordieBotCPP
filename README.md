@@ -1,5 +1,11 @@
 # Cordiebot2
-This bot was created from a brass lamp found in a resale store. CordieBot 2 is a remake of the original Arduino version which was made as a present for my granddaughter's 11th birthday. The original Arduino version can be found in the repository: https://github.com/Breidenbach/CordieBot .
+This bot was created from a brass lamp found in a resale store. CordieBot 2 is a remake of the original Arduino version which was made as a present for my granddaughter's 11th birthday.
+
+Here is a video of the CordieBot in action...  
+
+https://user-images.githubusercontent.com/1779744/133836883-783d6fb2-bbbe-4077-a870-86ad14fcd4a6.mp4
+
+The original Arduino version can be found in the repository: https://github.com/Breidenbach/CordieBot .
 
 Note that the CordieBot is a bot named after my granddaughter Cordie (duh).
 
@@ -14,7 +20,7 @@ This version uses logic similar to the original for the light show, but now has 
   -  2 touches and she says the current weather based on the location of the CordieBot, possibly followed by a proclamation.
   -  3 touches and she says the quote for the day from BrainyQuote.com.
   -  4 touches to repeat the previous proclamation.
-  -  5 touches and she tells her verion.
+  -  5 touches and she tells her version.
   -  8 touches and she tells her origin story.
   -  9 touches and she tells her internal temperature.
 - Holding the button for more than 5 seconds causes a shutdown of the system, so that a reboot can occur.  CordieBot must be powered off and powered back on to reboot.
@@ -60,7 +66,9 @@ wiringPi is used to access the Pi hardware inputs and outputs.  aoss is used to 
 
 Make files and execution defaults are dependent on the file structure below.  Note that after building the application files, the executables must be moved to /home/[user]/CordiBot2 to be used automatically on boot.
 
-/home/[user]/CordieBot2/ (executables and scripts for running CordieBot)
+/home/[user]/CordieBot2/ (Executables and scripts for running CordieBot)
+
+/home/[user]/CordieBot2logs/  (Directory for logs when auto running at boot.  This directory must have write permissions for all.)
 
 /home/[user]/ccpCordie/ (files for building CordieBot)
   - cbot/ (cordiebot main source files)
