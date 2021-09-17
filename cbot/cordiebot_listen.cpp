@@ -9,7 +9,7 @@
 #include "messages.h"
 #include <fstream>
 
-//#define DEBUG
+#define DEBUG
 
 /*
    pubnubprocess.cpp - created from subscribe_publish_callback_sample.cpp
@@ -45,23 +45,8 @@ std::string adjustApostropies(std::string str){
     return work;                          
 }
 
-bool internet(){
-    int test_result = system("ping -c 1 8.8.8.8");
-    #ifdef DEBUG
-        std::cout << "listen ping return: " << test_result << std::endl;
-    #endif
-    return (test_result == 0);
-}
-
 int main()
 {
-    while (! internet())  // wait for internet to connect
-    {
-        usleep(500*1000);  // delay 1/2 second
-    }
-    #ifdef DEBUG
-        std::cout << "Starting cordiebot_listen  1/24/2020  14:20" << std::endl;
-    #endif
     std::ifstream keyfile("keys.js");
     std::string pubkey, subkey;
     std::string line;
@@ -89,10 +74,13 @@ int main()
         char const *chan = "cordiebot";
         pubnub::context pb(pubkey, subkey);
         pubnub::context pb_2(pubkey, subkey);
+        std::string uuid("CordieBot2");
+        pb.set_uuid(uuid);
+        pb_2.set_uuid(uuid);
         JSONCPP_STRING json_err;
 
         std::string ID;
-        int action;
+        int action = 0;
         int type;
         int day;
         int month;
@@ -105,7 +93,7 @@ int main()
         #ifdef DEBUG
             std::cout << "--------------------------" << std::endl <<
                 "Subscribing..." << std::endl <<
-                "--------------------------";
+                "--------------------------" << std::endl;
 	    #endif
         /* First subscribe, to get the time token */
         res = pb.subscribe(chan).await();
@@ -133,60 +121,33 @@ int main()
     
         #ifdef DEBUG
             std::cout << "--------------------------" << std::endl <<
-                "Publishing..." << std::endl <<
-                "--------------------------";
+                "Publishing, with action = " << action << std::endl <<
+                "--------------------------" << std::endl;
         #endif
         
-        /* Since the subscribe is ongoing in the `pb` context, we
-           can't publish on it, so we use a different context to
-           publish
-        */
-        if (action > 0) {
-            pubnub::futres fr_2 = pb_2.publish(chan, message_reply);
-        
-            #ifdef DEBUG
-                std::cout << "Await publish" << std::endl;
-            #endif
-            res = fr_2.await();
-            if (res == PNR_STARTED) {
-                #ifdef DEBUG
-                    std::cout << "await() returned unexpected: PNR_STARTED" << std::endl;
-                #endif
-                return -1;
-            }
-            #ifdef DEBUG
-                if (PNR_OK == res) {
-                    std::cout << "Published! Response from Pubnub: " 
-                                        << pb_2.last_publish_result() << std::endl;
-                }
-                else if (PNR_PUBLISH_FAILED == res) {
-                    std::cout << "Published failed on Pubnub, description: " 
-                                        << pb_2.last_publish_result() << std::endl;
-                }
-                else {
-                    std::cout << "Publishing failed with code: " << (int)res << std::endl;
-                }
-            #endif
-        }
         /* Now we await the subscribe on `pbp` */
         #ifdef DEBUG
             std::cout << "Await subscribe" << std::endl;
         #endif
         res = futres.end_await();
-        action = 0;   //  pre-set to avoid using uninitialized variable
         if (PNR_OK == res) {
             #ifdef DEBUG
                 std::cout << "Subscribed! Got messages:";
             #endif
-            do {
+            do {  // while (!msg.empty())
                 msg = pb.get();
                 std::string next_entry;
                 std::cout << msg << std::endl;
                 
+                #ifdef DEBUG
+                    std::cout << "start of do loop"  << std::endl;
+                    std::cout << "msg.empty(): " << msg.empty() << "  msg.compare(): " <<
+                                 msg.compare(message_reply) << std::endl;
+                #endif
                 if (!msg.empty() && (msg.compare(message_reply) != 0)){
                     #ifdef DEBUG
-                        std::cout << "|" << msg << "|" << std::endl;
-                        std::cout << "|" << message_reply << "|" << std::endl;
+                        std::cout << "msg: |" << msg << "|" << std::endl;
+                        std::cout << "message_reply:  |" << message_reply << "|" << std::endl;
                         std::cout << "bool = " << !msg.empty() <<
                                              (msg != message_reply) << std::endl;
                         std::cout << "Just checked if not equal to sent message again" 
@@ -253,7 +214,7 @@ int main()
                             break;
                         case RETRIEVE_ENTRY:
                             std::cout << "action:  retrieve entry ID matches = "
-                                                << mbank.CheckID(ID) << std::endl;
+                                     << mbank.CheckID(ID) << " " << ID << std::endl;
                             if (mbank.CheckID(ID)) {
                                 reply_root["ID"] = mbank.ID();
                                 reply_root["year"] = mbank.year();
@@ -332,25 +293,54 @@ int main()
                     }  //  switch(action)
                     message_reply = writer.write(reply_root);
                     message_reply.pop_back();  //  remove \n from end of string.
-                    #ifdef DEBUG
-                        std::cout << "msg processed " << message_reply << std::endl;
-                    #endif
+			
+					/* 
+					   Return formatted message --
+		   
+					   Since the subscribe is ongoing in the `pb` context, we
+					   can't publish on it, so we use a different context to
+					   publish
+					*/
+ 
+			
+					pubnub::futres fr_2 = pb_2.publish(chan, message_reply);
+		
+					#ifdef DEBUG
+						std::cout << "Await publish with action = " << action << std::endl;
+					#endif
+					res = fr_2.await();
+					if (res == PNR_STARTED) {
+						#ifdef DEBUG
+							std::cout << "await() returned unexpected: PNR_STARTED" << std::endl;
+						#endif
+						return -1;
+					}
+					#ifdef DEBUG
+						if (PNR_OK == res) {
+							std::cout << "Published! Response from Pubnub: " 
+												<< pb_2.last_publish_result() << std::endl;
+						}
+						else if (PNR_PUBLISH_FAILED == res) {
+							std::cout << "Published failed on Pubnub, description: " 
+												<< pb_2.last_publish_result() << std::endl;
+						}
+						else {
+							std::cout << "Publishing failed with code: " << (int)res << std::endl;
+						}
+					#endif
                 }  //  if (!msg.empty() && (msg != sent_message))
                 #ifdef DEBUG
-                    std::cout << "after if (!msg.empty() && (msg != sent_message))" << std::endl;
+                    std::cout << "After if !msg.empty && msg != sent" << std::endl;
                 #endif
             } while (!msg.empty());
-            #ifdef DEBUG
-                std::cout << "after while (!msg.empty())" << std::endl;
-            #endif
-        }
+        }  //  if (PNR_OK == res)
         #ifdef DEBUG
             else {
                 std::cout << "Subscribing failed with code: " << (int)res << std::endl;
             }
         #endif
-      }
-    }
+      }  //  for(;;;)
+    }  // try
     catch (std::exception &exc) {
         std::cout << "Caught exception: " << exc.what() << std::endl;
     }
