@@ -54,6 +54,28 @@ wiringPi is used to access the Pi hardware inputs and outputs.  aoss is used to 
 ### Support files:
   - createproclamationfile.py:  Used to create an initial list of statements for the CordieBot to recite.
   - keys.js:  container for the CordieBot PubNub keyes used for communication to the CordieBot.  This file is used in all the files used in the PubNub communications - the host computer HTML file and CordieBot's listen program.
+  - cordiebot.service.txt and cordiebot_listen.service.txt: These files, with the .txt extension removed, should be place in the /etc/systemd/system/ directory to start the CordieBot applications when the system is booted.
+
+## DIRECTORY STRUCTURE
+
+Make files and execution defaults are dependent on the file structure below.  Note that after building the application files, the executables must be moved to /home/[user]/CordiBot2 to be used automatically on boot.
+
+/home/[user]/CordieBot2/ (executables and scripts for running CordieBot)
+
+/home/[user]/ccpCordie/ (files for building CordieBot)
+  - cbot/ (cordiebot main source files)
+  - lib/ (specific libraries created for cordiebot features)
+  - c-core/ (PubNub files)
+
+## BOOT STARTUP
+
+To start CordieBot on reboot, move the cordiebot.service.txt and cordiebot_listen.service.txt files to /etc/systemd/system/ with the .txt extension removed.  Then execute the following commands:
+
+  - sudo systemctl daemon-reload
+  - sudo systemctl enable cordiebot
+  - sudo systemctl enable cordiebot_listen
+  
+  
   
 ## PRINTED CIRCUIT BOARD
 
