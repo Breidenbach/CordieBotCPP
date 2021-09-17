@@ -783,15 +783,15 @@ void init()
 
 int main()
 {
-    std::cout << "Starting CordieBot 2/20/2020 11:10 " << std::endl;
-    std::string intro = "I am cordeebot 2.0";
+    std::cout << "Starting CordieBot 6/27/2021 14:30 " << std::endl;
+    std::string intro = "I am cordeebot 2.1";
     
     init();
     
     int counter;
     int periodic_counter = 0;
     float internal_temp = 70.0;   // Initialize to reasonable starting point of 70 deg.
-    internet(60);
+    internet(120);
     #ifdef DEBUG
         std::cout << "Internet present = " << internet(1) << std::endl;
     #endif
