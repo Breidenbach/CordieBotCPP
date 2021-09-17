@@ -20,7 +20,7 @@ This version uses logic similar to the original for the light show, but now has 
   -  2 touches and she says the current weather based on the location of the CordieBot, possibly followed by a proclamation.
   -  3 touches and she says the quote for the day from BrainyQuote.com.
   -  4 touches to repeat the previous proclamation.
-  -  5 touches and she tells her verion.
+  -  5 touches and she tells her version.
   -  8 touches and she tells her origin story.
   -  9 touches and she tells her internal temperature.
 - Holding the button for more than 5 seconds causes a shutdown of the system, so that a reboot can occur.  CordieBot must be powered off and powered back on to reboot.
