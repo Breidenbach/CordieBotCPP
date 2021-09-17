@@ -9,7 +9,7 @@
 #include "messages.h"
 #include <fstream>
 
-#define DEBUG
+// #define DEBUG
 
 /*
    pubnubprocess.cpp - created from subscribe_publish_callback_sample.cpp
