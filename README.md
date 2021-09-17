@@ -60,7 +60,9 @@ wiringPi is used to access the Pi hardware inputs and outputs.  aoss is used to 
 
 Make files and execution defaults are dependent on the file structure below.  Note that after building the application files, the executables must be moved to /home/[user]/CordiBot2 to be used automatically on boot.
 
-/home/[user]/CordieBot2/ (executables and scripts for running CordieBot)
+/home/[user]/CordieBot2/ (Executables and scripts for running CordieBot)
+
+/home/[user]/CordieBot2logs/  (Directory for logs when auto running at boot.  This directory must have write permissions for all.)
 
 /home/[user]/ccpCordie/ (files for building CordieBot)
   - cbot/ (cordiebot main source files)
