@@ -1,0 +1,11 @@
+[Unit]
+Description=CordieBot Service
+After=multi-user.target
+
+[Service]
+Type=idle
+WorkingDirectory=/home/pi/CordieBot2
+ExecStart=/bin/sh -c 'exec /home/pi/CordieBot2/cordiebot 2>&1 >/home/pi/CordieBot2logs/cbot.log'
+
+[Install]
+WantedBy=multi-user.target
