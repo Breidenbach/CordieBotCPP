@@ -9,7 +9,7 @@
 #include "messages.h"
 #include <fstream>
 
-// #define DEBUG
+#define DEBUG
 
 /*
    pubnubprocess.cpp - created from subscribe_publish_callback_sample.cpp
@@ -45,8 +45,23 @@ std::string adjustApostropies(std::string str){
     return work;                          
 }
 
+bool internet(){
+    int test_result = system("ping -c 1 8.8.8.8");
+    #ifdef DEBUG
+        std::cout << "listen ping return: " << test_result << std::endl;
+    #endif
+    return (test_result == 0);
+}
+
 int main()
 {
+    while (! internet())  // wait for internet to connect
+    {
+        usleep(500*1000);  // delay 1/2 second
+    }
+    #ifdef DEBUG
+        std::cout << "Starting cordiebot_listen  9/19/2021  14:45" << std::endl;
+    #endif
     std::ifstream keyfile("keys.js");
     std::string pubkey, subkey;
     std::string line;
@@ -137,9 +152,9 @@ int main()
             do {  // while (!msg.empty())
                 msg = pb.get();
                 std::string next_entry;
-                std::cout << msg << std::endl;
                 
                 #ifdef DEBUG
+                	std::cout << msg << std::endl;
                     std::cout << "start of do loop"  << std::endl;
                     std::cout << "msg.empty(): " << msg.empty() << "  msg.compare(): " <<
                                  msg.compare(message_reply) << std::endl;
@@ -198,6 +213,8 @@ int main()
                             reply_root["response"] = "Message added.";
                             break;
                         case CHANGE_ENTRY:
+                            std::cout << "action:  change entry ID matches = "
+                                     << mbank.CheckID(ID) << " " << ID << std::endl;
                             if (mbank.erase(ID)) {
                                 mbank.addEntry(ID, type, year, month, day, content);
                                 reply_root["response"] = "Message changed.";
@@ -206,6 +223,8 @@ int main()
                             }  // if (mbank.erase(ID))
                             break;
                         case DELETE_ENTRY:
+                            std::cout << "action:  delete entry ID matches = "
+                                     << mbank.CheckID(ID) << " " << ID << std::endl;
                             if (mbank.erase(ID)) {
                                 reply_root["response"] = "Message deleted.";
                             } else {
@@ -228,6 +247,7 @@ int main()
                             }  // if (mbank.CheckID(ID))
                             break;
                         case RETRIEVE_DATE:
+                            std::cout << "action:  retrieve date " << std::endl;
                             if (mbank.getByDate(month, day)){
                                 reply_root["ID"] = mbank.ID();
                                 reply_root["year"] = mbank.year();
@@ -243,6 +263,7 @@ int main()
                             }  // if (mbank.getByDate(month, day))
                             break;
                         case RETRIEVE_DATE_NEXT:
+                            std::cout << "action:  retrieve date next " << std::endl;
                             if (mbank.getByDateNext(month, day)){
                                 reply_root["ID"] = mbank.ID();
                                 reply_root["year"] = mbank.year();
@@ -257,6 +278,7 @@ int main()
                             }
                             break;
                         case RETRIEVE_ALL:
+                            std::cout << "action:  retrieve all start " << std::endl;
                             if (mbank.getAllStart()){
                                 reply_root["ID"] = mbank.ID();
                                 reply_root["year"] = mbank.year();
@@ -270,6 +292,7 @@ int main()
                             }  // if (mbank.getAllStart())
                             break;
                         case RETRIEVE_ALL_NEXT:
+                            std::cout << "action:  retrieve all next " << std::endl;
                             if (mbank.getAllNext()){
                                 reply_root["ID"] = mbank.ID();
                                 reply_root["year"] = mbank.year();
@@ -283,12 +306,14 @@ int main()
                             }  // if (mbank.getAllNext())
                             break;
                         case RESEQUENCE:
+                            std::cout << "action:  resequence " << std::endl;
                             mbank.resequence();
                             reply_root["response"] = "Resequenced " + 
                                    std::to_string(mbank.count()) + " messages.";
                             break;
                         default:
-                                reply_root["response"] = "Action unknown.";
+                            std::cout << "action:  resequence " << std::endl;
+                            reply_root["response"] = "Action unknown.";
                             break;
                     }  //  switch(action)
                     message_reply = writer.write(reply_root);
