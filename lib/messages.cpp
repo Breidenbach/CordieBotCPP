@@ -452,6 +452,7 @@ bool MessageBank::getByDate (int month, int day){
 }
 
 bool MessageBank::getByDateNext (int month, int day){
+    if (! vector_valid_) {return false;}
     for (++vit_ ; vit_ != proclamations_.messages().end(); ++vit_) {
         if ((month == (*vit_).month()) && (day == (*vit_).day())){
             vector_valid_ = true;
