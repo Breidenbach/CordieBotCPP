@@ -145,6 +145,10 @@
                                             //      ID values.
             const RETRIEVE_DATE_NEXT = 8;   //  retrieve next entry when retrieving by date
             const RETRIEVE_ALL_NEXT = 9;    //  retrieve next entry when retrieving all
+
+            const DATA_RETURNED = 1;        //  Data fields are valid
+            const RESPONSE_ONLY = 2;        //  Data fields are not valid, response is for
+                                       //    end of reading sequentially or ID not found.
                                         
         handleActionChoice(ADD_ENTRY);
         
@@ -466,7 +470,8 @@
     
     (function(){
         var pubnub = new PubNub({ publishKey : Publish,
-                  subscribeKey : Subscribe });
+                  subscribeKey : Subscribe,
+                  uuid : "CordieBot2" });
         var button = document.querySelector("button");
         var jsonData = {"action":"","response":"", "ID":'', "type":"", "year":"", "month":"", "day":"", "content":""}
         function $(id) { return document.getElementById(id); }
@@ -479,38 +484,58 @@
         console.log('ready to addListener.');
         pubnub.addListener({
             message: function(obj) {
+                var currentDate = new Date();
+                let time = currentDate.getHours() + ":" + currentDate.getMinutes() + 
+                		":" + currentDate.getSeconds();
+                console.log(time);
                 console.log("obj.message ", obj.message);
                 action = obj.message["action"];
                 response = obj.message["response"];
                 console.log("message response: ", response);
+                console.log("message responseType: ", obj.message["responseType"]);
                 result.innerHTML = response;
-                if (action == ADD_ENTRY ||
-                             action == RETRIEVE_ENTRY ||
-                             action == RETRIEVE_ALL ||
-                             action == RETRIEVE_ALL_NEXT ||
-                             action == RETRIEVE_DATE ||
-                             action == RETRIEVE_DATE_NEXT  ) {
-                    console.log("in actionSelection if statement.")
-                    setData("content",obj.message['content']);
-                    setDataZ("year",obj.message['year']);
-                    setDataZ("month",obj.message['month']);
-                    setDataZ("day",obj.message['day']);
-                    dateSelection = obj.message['type'];
-                    console.log("dateSelection ", dateSelection)
-                    rbutton = document.getElementsByName("item_choice");
-                    rbutton[dateSelection - 1].checked = true;
-                    setData("message_id",obj.message['ID']);
-                    if (actionSelection == RETRIEVE_ALL) {
-                        actionSelection = RETRIEVE_ALL_NEXT; 
-                        console.log("retrieve all -> retrieve all next");
-                        button.innerHTML = "RETRIEVE NEXT";
-                    } else {
-                        if (actionSelection == RETRIEVE_DATE) {
-                            actionSelection = RETRIEVE_DATE_NEXT; 
-                            console.log("retrieve by date -> retrieve by date next");
-                            button.innerHTML = "RETRIEVE NEXT";
-                        }
-                    }
+                if  (obj.message["responseType"] == RESPONSE_ONLY){
+					console.log("in actionSelection if statement.")
+					setData("content",' ');
+					setDataZ("year",' ');
+					setDataZ("month",' ');
+					setDataZ("day",' ');
+					if (action == RETRIEVE_ALL_NEXT || action == RETRIEVE_DATE_NEXT){
+						setData("message_id"," ");
+					}
+                }
+                else {
+					if (action == ADD_ENTRY ||
+								 action == RETRIEVE_ENTRY ||
+								 action == RETRIEVE_ALL ||
+								 action == RETRIEVE_ALL_NEXT ||
+								 action == RETRIEVE_DATE ||
+								 action == RETRIEVE_DATE_NEXT  ) {
+						console.log("in actionSelection if statement.")
+						setData("content",obj.message['content']);
+						setDataZ("year",obj.message['year']);
+						setDataZ("month",obj.message['month']);
+						setDataZ("day",obj.message['day']);
+						dateSelection = obj.message['type'];
+						console.log("dateSelection ", dateSelection)
+						rbutton = document.getElementsByName("item_choice");
+						if (dateSelection > 0) {
+							rbutton[dateSelection - 1].checked = true;
+							console.log("dateSelection valid", dateSelection);
+						}
+						setData("message_id",obj.message['ID']);
+						if (actionSelection == RETRIEVE_ALL) {
+							actionSelection = RETRIEVE_ALL_NEXT; 
+							console.log("retrieve all -> retrieve all next");
+							button.innerHTML = "RETRIEVE NEXT";
+						} else {
+							if (actionSelection == RETRIEVE_DATE) {
+								actionSelection = RETRIEVE_DATE_NEXT; 
+								console.log("retrieve by date -> retrieve by date next");
+								button.innerHTML = "RETRIEVE NEXT";
+							}
+						}
+					}
                 } 
             }
         });
@@ -518,10 +543,14 @@
         button.addEventListener('click', function() {
             //   console.log(checkVariables(actionSelection))
             if (checkVariables(actionSelection)) {
+                var currentDate = new Date();
+                let time = currentDate.getHours() + ":" + currentDate.getMinutes() + ":" + currentDate.getSeconds();
+                console.log(time);
                 console.log("publish y m d", year.value, month.value, day.value);
                 console.log("publish ID, dateSelection", message_id.value, dateSelection);
                 jsonData.action = actionSelection;
                 jsonData.response = "";
+                jsonData.responseType = "0";
                 jsonData.ID = message_id.value;
                 jsonData.type = dateSelection;
                 jsonData.year = parseInt(year.value);
@@ -534,6 +563,9 @@
         });
         button2.addEventListener('click', function() {
             //   console.log(checkVariables(actionSelection))
+            var currentDate = new Date();
+            let time = currentDate.getHours() + ":" + currentDate.getMinutes() + ":" + currentDate.getSeconds();
+            console.log(time);
             jsonData.content = content.value;
             console.log("jsonData2: ", jsonData.content);
             pubnub.publish({channel : talkChannel, message : jsonData,x });

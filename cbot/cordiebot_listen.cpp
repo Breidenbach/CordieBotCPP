@@ -9,7 +9,7 @@
 #include "messages.h"
 #include <fstream>
 
-#define DEBUG
+//#define DEBUG
 
 /*
    pubnubprocess.cpp - created from subscribe_publish_callback_sample.cpp
@@ -37,6 +37,10 @@
                                   //      ID values.
 #define RETRIEVE_DATE_NEXT 8       //  retrieve next entry when retrieving by date
 #define RETRIEVE_ALL_NEXT  9       //  retrieve next entry when retrieving all
+
+#define DATA_RETURNED      1       //  Data fields are valid
+#define RESPONSE_ONLY      2       //  Data fields are not valid, response is for
+                                   //    end of reading sequentially or ID not found.
 
 std::string adjustApostropies(std::string str){
     std::string work = str;
@@ -211,6 +215,7 @@ int main()
                             mbank.addEntry(next_entry, type, year, month, day, content);
                             reply_root["ID"] = next_entry;
                             reply_root["response"] = "Message added.";
+                            reply_root["responseType"] = DATA_RETURNED;
                             break;
                         case CHANGE_ENTRY:
                             std::cout << "action:  change entry ID matches = "
@@ -221,6 +226,7 @@ int main()
                             } else {
                                 reply_root["response"] = "Message " + ID + " not found.";
                             }  // if (mbank.erase(ID))
+                            reply_root["responseType"] = DATA_RETURNED;
                             break;
                         case DELETE_ENTRY:
                             std::cout << "action:  delete entry ID matches = "
@@ -230,6 +236,7 @@ int main()
                             } else {
                                 reply_root["response"] = "Message " + ID + " not found.";
                             }  // if (mbank.erase(ID))
+                            reply_root["responseType"] = DATA_RETURNED;
                             break;
                         case RETRIEVE_ENTRY:
                             std::cout << "action:  retrieve entry ID matches = "
@@ -242,8 +249,10 @@ int main()
                                 reply_root["type"] = mbank.type();
                                 reply_root["content"] = mbank.content();
                                 reply_root["response"] = "Message retrieved.";
+                            	reply_root["responseType"] = DATA_RETURNED;
                             } else {
                                 reply_root["response"] = "Message " + ID + " not found.";
+                            	reply_root["responseType"] = RESPONSE_ONLY;
                             }  // if (mbank.CheckID(ID))
                             break;
                         case RETRIEVE_DATE:
@@ -257,9 +266,11 @@ int main()
                                 reply_root["content"] = mbank.content();
                                 reply_string = writer.write(reply_root);
                                 reply_root["response"] = "First entry for this date.";
+                            	reply_root["responseType"] = DATA_RETURNED;
                             } else {
                                 reply_root["response"] =
                                         "Get by date: No entries found for this date.";
+                            	reply_root["responseType"] = DATA_RETURNED;
                             }  // if (mbank.getByDate(month, day))
                             break;
                         case RETRIEVE_DATE_NEXT:
@@ -273,8 +284,10 @@ int main()
                                 reply_root["content"] = mbank.content();
                                 reply_string = writer.write(reply_root);
                                 reply_root["response"] = "Next entry for this date.";
+                            	reply_root["responseType"] = DATA_RETURNED;
                             } else {
                                 reply_root["response"] = "No more messages for this date.";
+                            	reply_root["responseType"] = RESPONSE_ONLY;
                             }
                             break;
                         case RETRIEVE_ALL:
@@ -287,8 +300,10 @@ int main()
                                 reply_root["type"] = mbank.type();
                                 reply_root["content"] = mbank.content();
                                 reply_root["response"] = "First entry for get all.";
-                            } else {
+                             	reply_root["responseType"] = DATA_RETURNED;
+                           } else {
                                 reply_root["response"] = "Get all.  No entries found.";
+                            	reply_root["responseType"] = RESPONSE_ONLY;
                             }  // if (mbank.getAllStart())
                             break;
                         case RETRIEVE_ALL_NEXT:
@@ -301,8 +316,10 @@ int main()
                                 reply_root["type"] = mbank.type();
                                 reply_root["content"] = mbank.content();
                                 reply_root["response"] = "Get all:  Next entry.";
+                            	reply_root["responseType"] = DATA_RETURNED;
                             } else {
                                 reply_root["response"] = "Get all:  No more messages.";
+                            	reply_root["responseType"] = RESPONSE_ONLY;
                             }  // if (mbank.getAllNext())
                             break;
                         case RESEQUENCE:
@@ -310,10 +327,12 @@ int main()
                             mbank.resequence();
                             reply_root["response"] = "Resequenced " + 
                                    std::to_string(mbank.count()) + " messages.";
+                            reply_root["responseType"] = RESPONSE_ONLY;
                             break;
                         default:
                             std::cout << "action:  resequence " << std::endl;
                             reply_root["response"] = "Action unknown.";
+                            reply_root["responseType"] = RESPONSE_ONLY;
                             break;
                     }  //  switch(action)
                     message_reply = writer.write(reply_root);
