@@ -116,7 +116,7 @@ std::string replaceFirst(
 void speak(std::string say){
     digitalWrite(AMP_ENABLE, HIGH);  //  AMP_ENABLE was put in to resolve noise between
                                      //  speech events.  Might have been a Python issue.
-    const std::string prelude ("aoss swift \"<prosody rate='-0.3'> ");
+    const std::string prelude ("nice -n -5 aoss swift \"<prosody rate='-0.3'> ");
     const std::string postlude ("\"");
     std::string totality = prelude;
     totality.append(say);
@@ -795,6 +795,7 @@ int main()
     #ifdef DEBUG
         std::cout << "Internet present = " << internet(1) << std::endl;
     #endif
+    speak(" Hi ");
     double touchButtonGap = 0.6;
     countButton button(SWITCH, touchButtonGap);		// Setup the switch
     int type1count = mbank.type1count();
