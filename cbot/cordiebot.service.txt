@@ -5,7 +5,7 @@ After=multi-user.target
 [Service]
 Type=idle
 WorkingDirectory=/home/pi/CordieBot2
-ExecStart=/bin/sh -c 'exec nice -n -5 /home/pi/CordieBot2/cordiebot 2>&1 >/home/pi/CordieBot2logs/cbot.log'
+ExecStart=/bin/sh -c 'exec nice -n -3 /home/pi/CordieBot2/cordiebot 2>&1 >/home/pi/CordieBot2logs/cbot.log'
 
 
 [Install]
