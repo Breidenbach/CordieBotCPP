@@ -184,14 +184,14 @@
                     colorEnableFieldset("itemchoice_label");
                     handleItemChoice(dateSelection)
                     enableEntry("content");
-                    button.innerHTML = "ADD"
+                    button.innerHTML = "ADD";
                     break;
                 case CHANGE_ENTRY:  //  change message
                     enableEntry("message_id");
                     colorEnableFieldset("itemchoice_label");
                     handleItemChoice(dateSelection)
                     enableEntry("content");
-                    button.innerHTML = "CHANGE"
+                    button.innerHTML = "CHANGE";
                     break;
                 case DELETE_ENTRY:  //  delete message
                     enableEntry("message_id");
@@ -201,7 +201,7 @@
                     disableEntry("year");
                     disableEntry("month");
                     disableEntry("day");
-                    button.innerHTML = "DELETE"
+                    button.innerHTML = "DELETE";
                     break;
                 case RETRIEVE_ENTRY: //   retrieve one message
                     enableEntry("message_id");
@@ -211,7 +211,7 @@
                     disableEntry("year");
                     disableEntry("month");
                     disableEntry("day");
-                    button.innerHTML = "RETRIEVE"
+                    button.innerHTML = "RETRIEVE";
                     break;
                 case RETRIEVE_DATE:  //  retrieve message by date
                     disableEntry("message_id");
@@ -220,7 +220,7 @@
                     disableEntry("year");
                     enableEntry("month");
                     enableEntry("day");
-                    button.innerHTML = "RETRIEVE by DATE"
+                    button.innerHTML = "RETRIEVE by DATE";
                     break;
                 case RETRIEVE_ALL:  //  retrieve all messages
                     disableEntry("message_id");
@@ -229,7 +229,7 @@
                     disableEntry("year");
                     disableEntry("month");
                     disableEntry("day");
-                    button.innerHTML = "RETRIEVE ALL"
+                    button.innerHTML = "RETRIEVE ALL";
                     break;
                 case RESEQUENCE:  //  resequence messages
                     disableEntry("message_id");
@@ -238,7 +238,7 @@
                     disableEntry("year");
                     disableEntry("month");
                     disableEntry("day");
-                    button.innerHTML = "RESEQUENCE"
+                    button.innerHTML = "RESEQUENCE";
                     break;
                 default:
             }
@@ -502,6 +502,13 @@
 					setDataZ("day",' ');
 					if (action == RETRIEVE_ALL_NEXT || action == RETRIEVE_DATE_NEXT){
 						setData("message_id"," ");
+						if (action == RETRIEVE_ALL_NEXT) {
+							actionSelection = RETRIEVE_ALL_NEXT;
+							button.innerHTML = "RETRIEVE ALL";
+						} else {
+							actionSelection = RETRIEVE_DATE_NEXT;
+							button.innerHTML = "RETRIEVE by DATE";
+						}
 					}
                 }
                 else {
