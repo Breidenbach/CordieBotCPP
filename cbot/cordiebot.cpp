@@ -116,7 +116,7 @@ std::string replaceFirst(
 void speak(std::string say){
     digitalWrite(AMP_ENABLE, HIGH);  //  AMP_ENABLE was put in to resolve noise between
                                      //  speech events.  Might have been a Python issue.
-    const std::string prelude ("nice -n -5 aoss swift \"<prosody rate='-0.3'> ");
+    const std::string prelude ("nice -n -8 aoss swift \"<prosody rate='-0.3'> ");
     const std::string postlude ("\"");
     std::string totality = prelude;
     totality.append(say);
@@ -528,16 +528,20 @@ void tellWeather(){
             std::cout << "In weather, internet OK" << std::endl;
         #endif
         CURL *curl;
+        CURLcode res;
         std::string readBuffer;
         curl = curl_easy_init();
         if(curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, "https://geoip-db.com/json/");
+            curl_easy_setopt(curl, CURLOPT_URL, "https://geolocation-db.com/json/");
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            curl_easy_perform(curl);
+            res = curl_easy_perform(curl);
             curl_easy_cleanup(curl);
+            if (res != CURLE_OK) {
+            	std::cout << "error: " << curl_easy_strerror(res) << std::endl;
+            }
             #ifdef DEBUG
-                std::cout << readBuffer << std::endl;
+                std::cout << "readBuffer = [" << readBuffer << "]" << std::endl;
             #endif
             JSONCPP_STRING json_err;
             Json::Value root;
@@ -621,7 +625,7 @@ void tellDailyQuote(){
         int const quoteSpeakBase = 1;  // light show iterations to speak quote
                                         // with no message.
         #ifdef DEBUG
-            std::cout << "In weather, internet OK" << std::endl;
+            std::cout << "In daily quote, internet OK" << std::endl;
         #endif
         CURL *curl;
         std::string readBuffer;
@@ -634,7 +638,7 @@ void tellDailyQuote(){
             curl_easy_perform(curl);
             curl_easy_cleanup(curl);
             #ifdef DEBUG
-                std::cout << readBuffer << std::endl;
+                std::cout << "readBuffer = [" << readBuffer << "]" << std::endl;
             #endif
             std::size_t start = readBuffer.find("<item>") + 6;
             std::size_t len = readBuffer.find("</item>") - start;
@@ -783,8 +787,8 @@ void init()
 
 int main()
 {
-    std::cout << "Starting CordieBot 6/27/2021 14:30 " << std::endl;
-    std::string intro = "I am cordeebot 2.1";
+    std::cout << "Starting CordieBot 11/26/2021 13:20 " << std::endl;
+    std::string intro = "I am cordeebot 2.2";
     
     init();
     
@@ -796,7 +800,7 @@ int main()
         std::cout << "Internet present = " << internet(1) << std::endl;
     #endif
     speak(" Hi ");
-    double touchButtonGap = 0.6;
+    double touchButtonGap = 0.8;
     countButton button(SWITCH, touchButtonGap);		// Setup the switch
     int type1count = mbank.type1count();
     int current_day = getDay();
