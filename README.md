@@ -53,9 +53,10 @@ wiringPi is used to access the Pi hardware inputs and outputs.  aoss is used to 
   - CordieBot update scripts, executed when a USB drive is sensed:
     - cp_cordiebot.sh: copies cordiebot files from a USB drive to the current directory
     - cp_wpa_conf.sh: copies the wpa_supplicant.conf file from a USB drive to /etc/wpa_supplicant/
-  - cordiebot_listen:  uses PubNub to communicate with the html app on home computer   
+  - cordiebot_listen:  uses PubNub to communicate with the html app on home computer 
+  - cordiebot_speak:  auxiliary program to receive the message from the html file and speak it.  This provides the abiity to listen to the messages prior to updating the proclamation file.  
 ### Scripts to remotely update the proclamation file:
-  - cbot_communication.html:  communicates from a host computer to the CordieBot to maintain the file of proclamations spoken after the time.
+  - cbot_communication.html:  communicates from a host computer to the CordieBot to maintain the file of proclamations spoken after the time is spoken.
   - Cbot_style.css:  style definitions used by cbot_communication.html
 ### Support files:
   - createproclamationfile.py:  Used to create an initial list of statements for the CordieBot to recite.
