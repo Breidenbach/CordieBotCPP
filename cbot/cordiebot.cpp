@@ -116,7 +116,7 @@ std::string replaceFirst(
 void speak(std::string say){
     digitalWrite(AMP_ENABLE, HIGH);  //  AMP_ENABLE was put in to resolve noise between
                                      //  speech events.  Might have been a Python issue.
-    const std::string prelude ("nice -n -8 aoss swift \"<prosody rate='-0.3'> ");
+    const std::string prelude ("nice -n -15 aoss swift \"<prosody rate='-0.3'> ");
     const std::string postlude ("\"");
     std::string totality = prelude;
     totality.append(say);
