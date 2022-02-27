@@ -24,7 +24,7 @@ This version uses logic similar to the original for the light show, but now has 
   -  8 touches and she tells her origin story.
   -  9 touches and she tells her internal temperature.
 - Holding the button for more than 5 seconds causes a shutdown of the system, so that a reboot can occur.  CordieBot must be powered off and powered back on to reboot.
-- Checks for a USB drive on start up, and when internet access is disrupted.  If the USB drive is found, checks for a new wpa_supplicant.conf file or cordiebot executable files.  If either is found, copy the file(s) using special scripts into the appropriate directory. Thus this version has the capability of changing the WIFI name and password without a keyboard as well as updating the software.  It is expected that the USB drive will be removed during the reboot process.
+- Checks for a USB drive on start up, and when internet access is disrupted.  If the USB drive is found, checks for a new wpa_supplicant.conf file or cordiebot executable files.  If either is found, copy the file(s) using special scripts into the appropriate directory. (the executable files are only copied if the date on the files is newer than the dates on the CordieBot) Thus this version has the capability of changing the WIFI name and password without a keyboard as well as updating the software.  The USB drive is unmounted after files are copied, as it is expected that the USB drive will be removed after this process.
 - This version uses multithreading to overlap the light show and speech.
 - The CordieBot has an internal fan and temperature sensor, so that when the internal temperature is high the fan may help cool its logic.
 
@@ -51,8 +51,7 @@ wiringPi is used to access the Pi hardware inputs and outputs.  aoss is used to 
 ### The CordieBot application:
   - cordiebot: the main script
   - CordieBot update scripts, executed when a USB drive is sensed:
-    - cp_cordiebot.sh: copies cordiebot files from a USB drive to the current directory
-    - cp_wpa_conf.sh: copies the wpa_supplicant.conf file from a USB drive to /etc/wpa_supplicant/
+    - cordiebot_ctl.sh: copies cordiebot files from a USB drive to the current directory if the files on the USB are newer, always copiies the wpa_supplicant.conf file to /etc/wpa_supplicant
   - cordiebot_listen:  uses PubNub to communicate with the html app on home computer 
   - cordiebot_speak:  auxiliary program to receive the message from the html file and speak it.  This provides the abiity to listen to the messages prior to updating the proclamation file.  
 ### Scripts to remotely update the proclamation file:
@@ -61,7 +60,7 @@ wiringPi is used to access the Pi hardware inputs and outputs.  aoss is used to 
 ### Support files:
   - createproclamationfile.py:  Used to create an initial list of statements for the CordieBot to recite.
   - keys.js:  container for the CordieBot PubNub keyes used for communication to the CordieBot.  This file is used in all the files used in the PubNub communications - the host computer HTML file and CordieBot's listen program.
-  - cordiebot.service.txt and cordiebot_listen.service.txt: These files, with the .txt extension removed, should be place in the /etc/systemd/system/ directory to start the CordieBot applications when the system is booted.
+  - cordiebot_ctl.service.txt, cordiebot.service.txt, and cordiebot_listen.service.txt: These files, with the .txt extension removed, should be place in the /etc/systemd/system/ directory to start the CordieBot applications when the system is booted.
 
 ## DIRECTORY STRUCTURE
 
@@ -78,9 +77,13 @@ Make files and execution defaults are dependent on the file structure below.  No
 
 ## BOOT STARTUP
 
-To start CordieBot on reboot, move the cordiebot.service.txt and cordiebot_listen.service.txt files to /etc/systemd/system/ with the .txt extension removed.  Then execute the following commands:
+To start CordieBot on reboot, move the cordiebot_ctl.service.txt, cordiebot.service.txt, and cordiebot_listen.service.txt files to /etc/systemd/system/ with the .txt extension removed.  Then execute the following commands:
 
+  - sudo systemctl disable cordiebot_ctl
+  - sudo systemctl disable cordiebot
+  - sudo systemctl disable cordiebot_listen
   - sudo systemctl daemon-reload
+  - sudo systemctl enable cordiebot_ctl
   - sudo systemctl enable cordiebot
   - sudo systemctl enable cordiebot_listen
   
