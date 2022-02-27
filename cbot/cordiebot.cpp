@@ -256,30 +256,10 @@ void checkFan(float &average_temp){
 
 /**
  *
- *  Self update routines
+ *  Copy file routine
  *
- *  Check if USB files present.  If it is, /proc/mounts will contain the string
- *   "CORDIEBOT"
- *
- */
+ **/
  
-std::string findCordiebotUSB()
-{
-    std::string line;
-    std::ifstream USBfile ("/proc/mounts");
-    if (USBfile.is_open())
-    {
-        while ( getline (USBfile,line) )
-        {
-            if (line.find("CORDIEBOT") != std::string::npos) {
-                return line;
-            }
-        }
-    USBfile.close();
-    }
-    return "";
-}
-
 void copyFile(const char* infile, const char* outfile){
     int source = open(infile, O_RDONLY, 0);
     int dest = open(outfile, O_WRONLY | O_CREAT, 0644);
@@ -317,6 +297,7 @@ void checkForConf() {
         {
             if (fgets(buffer, max_buffer, stream) != NULL)
             {
+                std::cout << "Checking for wpa_supplicant.conf" << std::endl;
                 std::size_t found;
                 std::string data;
                 std::string match_string = "wpa_supplicant.conf\n";
@@ -326,21 +307,27 @@ void checkForConf() {
                 found = data.find(match_string);
                 if (found!=std::string::npos)
                 {
-                    #ifdef DEBUG
-                        std::cout << "got wpa_supplicant.conf: " << std::endl;
-                    #endif
+                    std::cout << "got wpa_supplicant.conf: " << std::endl;
                     speak("I have found a new why fi name and password file.  "
                                 "I will start using that file after I reboot.");
                     system("sudo /home/pi/CordieBot2/cp_wpa_conf.sh"
                                                         " /media/pi/CORDIEBOT");
                     shutdown = true;
                 }
+                found = data.find("cp_wpa_conf.sh");
+                if (found!=std::string::npos)
+                {
+                    std::cout << "cp_wpa_conf.sh found" << std::endl;
+
+                    copyFile("/media/pi/CORDIEBOT/cp_wpa_conf.sh","cp_wpa_conf.sh");
+                                    
+                    system("chmod a+x /home/pi/CordieBot2/cp_wpa_conf.sh");
+                    shutdown = true;
+                }
                 found = data.find("cp_cordiebot.sh");
                 if (found!=std::string::npos)
                 {
-                    #ifdef DEBUG
-                        std::cout << "cp_cordiebot.sh found" << std::endl;
-                    #endif
+                    std::cout << "cp_cordiebot.sh found" << std::endl;
 
                     copyFile("/media/pi/CORDIEBOT/cp_cordiebot.sh","cp_cordiebot.sh");
                                     
@@ -351,10 +338,8 @@ void checkForConf() {
                     found = data.find("cordiebot");
                     if (found!=std::string::npos)
                     {
-                        #ifdef DEBUG
-                            std::cout << "at least one cordiebot"
+                        std::cout << "at least one cordiebot"
                                                     " executable found" << std::endl;
-                        #endif
                         shutdown = true;
                         copy_bot = true;
                     }
@@ -787,8 +772,8 @@ void init()
 
 int main()
 {
-    std::cout << "Starting CordieBot 11/26/2021 13:20 " << std::endl;
-    std::string intro = "I am cordeebot 2.2";
+    std::cout << "Starting CordieBot 01/15/2022 15:40 " << std::endl;
+    std::string intro = "I am cordeebot 2.3";
     
     init();
     

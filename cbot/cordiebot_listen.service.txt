@@ -1,9 +1,9 @@
 [Unit]
 Description=CordieBot Communication Service
-After=multi-user.target
+After=cordiebot_ctl.service
 
 [Service]
-Type=idle
+Type=simple
 WorkingDirectory=/home/pi/CordieBot2
 ExecStart=/bin/sh -c 'exec /home/pi/CordieBot2/cordiebot_listen 2>&1 > /home/pi/CordieBot2logs/cbot_l.log'
 

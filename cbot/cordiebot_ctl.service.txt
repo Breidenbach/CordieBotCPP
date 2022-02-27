@@ -1,0 +1,13 @@
+[Unit]
+Description=CordieBot Control Service
+After=sysinit.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/pi/CordieBot2
+ExecStart=/bin/bash /home/pi/CordieBot2/cordiebot_ctl.sh 
+StandardOutput=journal+console
+
+
+[Install]
+WantedBy=cordiebot.service cordiebot_listen.service

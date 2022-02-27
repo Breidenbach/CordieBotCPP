@@ -19,38 +19,9 @@
 #include <memory>
 #include <string>
 #include <fstream>
-#include <unistd.h>        // usleep
-
-
-// #define DEBUG
-
-/**
- *
- *   internet tests if the internet can be accessed.
- *
- **/
-bool internet(int startcount){
-    int test_result = 0;
-    while (startcount > 0){
-        test_result = system("ping -c 1 8.8.8.8");
-        #ifdef DEBUG
-            std::cout << "ping return: " << test_result << " cnt: "
-                                                 << startcount << std::endl;
-        #endif
-        if (test_result == 0) { return true;}
-        startcount--;
-        usleep(1000*1000);  // delay 1 second
-    }
-    std::cout << "I don't appear to be connected to a why fi network." << std::endl;
-    return 0;
-}
 
 int main()
 {
-    internet(120);
-    #ifdef DEBUG
-        std::cout << "Internet present = " << internet(1) << std::endl;
-    #endif
     try {
         std::ifstream keyfile("keys.js");
         std::string pubkey, subkey;
@@ -85,37 +56,24 @@ int main()
                     std::cout << "Getting message failed with code: " << res;
                     return -1;
                 }
-                
-                #ifdef DEBUG
-                	std::cout << ">201103L: Got message: \n" << msg << 
-                		"  length:  " << msg.length() << std::endl;
-                #endif
-                
-            	// Messages of zero length are ignored.
-                if (msg.length() > 0) {
-					JSONCPP_STRING json_err;
-					Json::Value root;
-					Json::CharReaderBuilder builder;
-					const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-					int rawLength = msg.length();
-					if (!reader->parse(msg.c_str(), msg.c_str() + rawLength, &root, &json_err)) {
-						std::cout << "json error" << std::endl;
-					} else {
-						const std::string prelude ("aoss swift \"<prosody rate='-0.3'> ");
-						const std::string postlude ("\"");
-						std::string content = root["content"].asString();
-						#ifdef DEBUG
-							std::cout << "msg content:  " << content << "  length: " <<
-										 content.length() << std::endl;
-						#endif
-						std::string totality = prelude + content + postlude;
-						const char *speak = totality.c_str();
-						#ifdef DEBUG
-							std::cout << "speak: " << speak << std::endl;
-						#endif
-						system(speak);
-					}
-
+                std::cout << ">201103L: Got message: \n" << msg << std::endl;
+                JSONCPP_STRING json_err;
+                Json::Value root;
+                Json::CharReaderBuilder builder;
+                const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+                int rawLength = msg.length();
+                if (!reader->parse(msg.c_str(), msg.c_str() + rawLength, &root, &json_err)) {
+                    std::cout << "json error" << std::endl;
+                } else {
+                    const std::string prelude ("aoss swift \"<prosody rate='-0.3'> ");
+                    const std::string postlude ("\"");
+                    std::string content = root["content"].asString();
+                    std::cout << "msg content:  " << content << "  length: " <<
+                                     content.length() << std::endl;
+                    std::string totality = prelude + content + postlude;
+                    const char *speak = totality.c_str();
+                    std::cout << "speak: " << speak << std::endl;
+                    system(speak);
                 }
 
                 return 0;

@@ -1,11 +1,11 @@
 [Unit]
 Description=CordieBot Service
-After=multi-user.target
+After=cordiebot_ctl.service
 
 [Service]
-Type=idle
+Type=simple
 WorkingDirectory=/home/pi/CordieBot2
-ExecStart=/bin/sh -c 'exec nice -n -3 /home/pi/CordieBot2/cordiebot 2>&1 >/home/pi/CordieBot2logs/cbot.log'
+ExecStart=/bin/sh -c 'exec nice -n -3 /home/pi/CordieBot2/cordiebot 2>&1 > /home/pi/CordieBot2logs/cbot.log'
 
 
 [Install]
